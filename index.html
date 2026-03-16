@@ -1,0 +1,1987 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORANGE LAB AI — Planejador de Conteudo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0A0A0A;--bg2:#111;--bg3:#1A1A1A;--bg4:#222;--border:#2A2A2A;--text:#E2E8F0;--muted:#888;--orange:#F97316;--pink:#EC4899;--purple:#8B5CF6;--green:#10B981;--blue:#3B82F6;--red:#EF4444;--yellow:#F59E0B;--cyan:#06B6D4}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+input,select,textarea{font-family:inherit}
+
+/* Sidebar */
+.sidebar{width:250px;background:#0F0F0F;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-header{padding:18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer}
+.logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--orange),var(--pink));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#fff;flex-shrink:0}
+.logo-text{line-height:1.2}.logo-title{font-weight:800;font-size:15px}.logo-sub{font-size:10px;color:var(--orange);font-weight:600;letter-spacing:2px}
+.sidebar nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-btn{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;border:none;cursor:pointer;background:transparent;color:var(--muted);font-weight:400;font-size:13px;transition:all .2s;width:100%;text-align:left;border-left:3px solid transparent}
+.nav-btn:hover{background:rgba(249,115,22,.08);color:#ccc}
+.nav-btn.active{background:linear-gradient(135deg,rgba(249,115,22,.15),rgba(236,72,153,.15));color:var(--orange);font-weight:700;border-left-color:var(--orange)}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:#555}
+.sidebar-footer strong{color:var(--muted);display:block}
+
+/* Main */
+.main{flex:1;overflow-y:auto;padding:28px 36px}
+.section{display:none}.section.active{display:block}
+
+/* Components */
+.header h1{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--orange),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.header p{font-size:14px;color:var(--muted);margin-bottom:24px}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px}
+.card h3{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.btn{padding:10px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:opacity .2s}
+.btn:hover{opacity:.9}
+.btn-ghost{background:var(--bg4)}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:8px}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.search-box{width:100%;padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;margin-bottom:16px}
+.search-box:focus{outline:none;border-color:var(--orange)}
+
+/* Idea Cards */
+.ideas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.idea-card{background:var(--bg4);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;border-left:3px solid transparent;position:relative}
+.idea-card:hover{border-left-color:var(--orange);background:#1e1e1e;transform:translateY(-2px)}
+.idea-card .idea-cat{font-size:11px;color:var(--orange);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.idea-card .idea-title{font-size:14px;font-weight:600;margin-bottom:8px;line-height:1.4}
+.idea-card .idea-tags{display:flex;gap:6px;flex-wrap:wrap}
+.idea-card .idea-tags span{font-size:10px;padding:2px 8px;border-radius:12px;background:rgba(249,115,22,.12);color:var(--orange)}
+.idea-card .idea-click{position:absolute;top:12px;right:12px;font-size:10px;color:var(--muted);opacity:0;transition:opacity .2s}
+.idea-card:hover .idea-click{opacity:1}
+.idea-card .idea-save{position:absolute;bottom:12px;right:12px;font-size:11px;padding:4px 12px;border-radius:8px;border:1px solid var(--orange);background:rgba(249,115,22,.1);color:var(--orange);cursor:pointer;opacity:0;transition:all .2s;font-weight:600}
+.idea-card:hover .idea-save{opacity:1}
+.idea-card .idea-save:hover{background:var(--orange);color:#fff}
+
+/* Hook Cards */
+.hooks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.hook-card{background:linear-gradient(135deg,rgba(249,115,22,.08),rgba(236,72,153,.06));border:1px solid rgba(249,115,22,.2);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s}
+.hook-card:hover{border-color:var(--orange);transform:translateY(-2px)}
+.hook-card .hook-emoji{font-size:22px;margin-bottom:6px}
+.hook-card .hook-text{font-size:14px;font-weight:600;line-height:1.5}
+.hook-card .hook-cat{font-size:11px;color:var(--pink);margin-top:8px;font-weight:600}
+
+/* Viral Items */
+.viral-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.viral-item{background:var(--bg4);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s}
+.viral-item:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.viral-item .vi-title{font-size:14px;font-weight:600;margin-bottom:6px}
+.viral-item .vi-stats{font-size:12px;color:var(--muted);margin-bottom:8px}
+.viral-item .vi-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:rgba(6,182,212,.15);color:var(--cyan)}
+.gravar-hoje{background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(6,182,212,.08));border-color:var(--green)}
+
+/* Filter Pills */
+.pill-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.pill{padding:6px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.pill.active,.pill:hover{background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;border-color:transparent}
+
+/* Travel Planner */
+.travel-form{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px}
+.travel-form label{font-size:12px;color:var(--muted);margin-bottom:4px;display:block}
+.travel-form input,.travel-form select{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px}
+.travel-form input:focus,.travel-form select:focus{outline:none;border-color:var(--orange)}
+.day-block{margin-bottom:20px}
+.day-block h4{font-size:16px;font-weight:700;color:var(--orange);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.day-video{background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px}
+.day-video:hover{border-color:var(--orange);background:#1e1e1e}
+.day-video .dv-time{font-size:12px;color:var(--orange);font-weight:700;min-width:60px}
+.day-video .dv-title{font-size:14px;font-weight:600}
+.day-video .dv-type{font-size:11px;color:var(--muted)}
+
+/* Brain Charts */
+.brain-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.brain-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px}
+.brain-card h4{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--cyan)}
+.insight{padding:12px;background:var(--bg4);border-radius:10px;margin-bottom:8px;font-size:13px;line-height:1.5;border-left:3px solid var(--orange)}
+
+/* Calendar */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:20px}
+.cal-header{font-size:11px;color:var(--muted);text-align:center;padding:8px 0;font-weight:700}
+.cal-day{background:var(--bg3);border:1px solid var(--border);border-radius:8px;min-height:80px;padding:8px;font-size:12px;cursor:pointer;transition:all .15s}
+.cal-day:hover{border-color:var(--orange)}
+.cal-day .cal-num{font-weight:700;margin-bottom:4px;color:var(--muted)}
+.cal-day.today .cal-num{color:var(--orange)}
+.cal-day .cal-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin:1px}
+
+/* Banco de Ideias */
+.bank-item{background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.bank-item .bi-text{font-size:14px;font-weight:500;flex:1}
+.bank-item .bi-status{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:700}
+.bi-status.pendente{background:rgba(245,158,11,.15);color:var(--yellow)}
+.bi-status.para_edicao{background:rgba(139,92,246,.15);color:var(--purple)}
+.bi-status.editado{background:rgba(6,182,212,.15);color:var(--cyan)}
+.bi-status.gravado{background:rgba(16,185,129,.15);color:var(--green)}
+.bi-status.publicado{background:rgba(59,130,246,.15);color:var(--blue)}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:18px;width:90%;max-width:720px;max-height:85vh;overflow-y:auto;padding:28px;position:relative}
+.modal-close{position:absolute;top:14px;right:14px;background:var(--bg4);border:none;color:var(--text);font-size:20px;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--red)}
+.modal h2{font-size:22px;font-weight:800;margin-bottom:6px;background:linear-gradient(135deg,var(--orange),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.modal .modal-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+.modal .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.modal .info-box{background:var(--bg3);border-radius:10px;padding:12px}
+.modal .info-box label{font-size:11px;color:var(--orange);font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+.modal .info-box p{font-size:13px;line-height:1.5}
+.modal .script-section{margin-bottom:16px}
+.modal .script-section h4{font-size:14px;font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.modal .script-text{font-size:13px;line-height:1.6;padding:12px;background:var(--bg3);border-radius:10px}
+.takes-timeline{position:relative;padding-left:30px;margin-bottom:16px}
+.take{position:relative;margin-bottom:14px;padding:12px;background:var(--bg3);border-radius:10px}
+.take::before{content:attr(data-num);position:absolute;left:-30px;top:12px;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.takes-timeline::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border)}
+.take .take-title{font-size:13px;font-weight:700;margin-bottom:4px}
+.take .take-desc{font-size:12px;color:var(--muted);line-height:1.5}
+.modal .hashtags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.modal .hashtags span{font-size:12px;padding:4px 10px;border-radius:10px;background:rgba(249,115,22,.1);color:var(--orange);cursor:pointer}
+.modal .modal-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* Subir Ideia */
+.upload-tabs{display:flex;gap:8px;margin-bottom:16px}
+.upload-tab{padding:8px 18px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.upload-tab.active{background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;border-color:transparent}
+.upload-area textarea{width:100%;padding:14px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;min-height:120px;resize:vertical}
+.upload-area textarea:focus{outline:none;border-color:var(--orange)}
+
+/* Lock Screen */
+.lock-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:#0A0A0A;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px}
+.lock-screen.unlocked{display:none}
+.lock-box{text-align:center;max-width:380px;width:90%}
+.lock-logo{width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,#F97316,#EC4899);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:28px;color:#fff;margin:0 auto 24px}
+.lock-title{font-size:28px;font-weight:800;background:linear-gradient(135deg,#F97316,#EC4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.lock-sub{font-size:14px;color:#888;margin-bottom:28px}
+.lock-input{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.lock-input input{width:52px;height:60px;text-align:center;font-size:24px;font-weight:800;border-radius:12px;border:2px solid #2A2A2A;background:#111;color:#F97316;outline:none;transition:border-color .2s}
+.lock-input input:focus{border-color:#F97316}
+.lock-error{color:#EF4444;font-size:13px;min-height:20px;margin-bottom:10px}
+.lock-btn{padding:12px 40px;border-radius:12px;border:none;background:linear-gradient(135deg,#F97316,#EC4899);color:#fff;font-weight:700;font-size:15px;cursor:pointer;transition:opacity .2s}
+.lock-btn:hover{opacity:.9}
+.lock-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Settings Section */
+.settings-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px}
+.settings-card h3{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.settings-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.settings-row label{font-size:13px;color:var(--muted);min-width:120px}
+.settings-row input{flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px}
+.settings-row input:focus{outline:none;border-color:var(--orange)}
+.settings-hint{font-size:11px;color:#666;margin-top:4px;line-height:1.5}
+
+/* AI Loading spinner */
+.ai-loading{display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 20px}
+.ai-spinner{width:48px;height:48px;border:4px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:aispin 1s linear infinite}
+@keyframes aispin{to{transform:rotate(360deg)}}
+
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+
+.ai-loading p{color:var(--muted);font-size:14px;text-align:center}
+
+</style>
+</head>
+<body>
+
+<!-- Lock Screen -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-logo">OL</div>
+    <div class="lock-title">ORANGE LAB AI</div>
+    <div class="lock-sub">Digite o codigo de acesso</div>
+    <div class="lock-input">
+      <input type="tel" maxlength="1" id="lk1" oninput="lockNext(this,1)" onkeydown="lockBack(event,0)" autofocus>
+      <input type="tel" maxlength="1" id="lk2" oninput="lockNext(this,2)" onkeydown="lockBack(event,1)">
+      <input type="tel" maxlength="1" id="lk3" oninput="lockNext(this,3)" onkeydown="lockBack(event,2)">
+      <input type="tel" maxlength="1" id="lk4" oninput="lockNext(this,4)" onkeydown="lockBack(event,3)">
+    </div>
+    <div class="lock-error" id="lockError"></div>
+    <button class="lock-btn" onclick="tryUnlock()">Entrar</button>
+  </div>
+</div>
+
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">OL</div>
+    <div class="logo-text"><div class="logo-title">ORANGE LAB</div><div class="logo-sub">AI PLANNER</div></div>
+  </div>
+  <nav id="nav"></nav>
+  <div class="sidebar-footer">
+    <button onclick="downloadSavedSite()" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--orange);background:rgba(249,115,22,.1);color:var(--orange);font-weight:700;font-size:12px;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s" onmouseover="this.style.background='var(--orange)';this.style.color='#fff'" onmouseout="this.style.background='rgba(249,115,22,.1)';this.style.color='var(--orange)'">💾 Salvar Site</button>
+    <strong>ORANGE LAB AI v4.0</strong>Seu planejador de conteudo inteligente
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main" id="main"></div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+// ============ NAV CONFIG ============
+const SECTIONS = [
+  {id:'ideas', icon:'💡', label:'Idea Machine'},
+  {id:'hooks', icon:'🪝', label:'Hook Bank'},
+  {id:'viral', icon:'🔥', label:'Viral Hunter'},
+  {id:'travel', icon:'✈️', label:'Planner de Viagem'},
+  {id:'brain', icon:'🧠', label:'Content Brain'},
+  {id:'radar', icon:'📡', label:'Content Radar'},
+  {id:'calendar', icon:'📅', label:'Calendario'},
+  {id:'bank', icon:'🗃️', label:'Banco de Ideias'},
+  {id:'upload', icon:'📤', label:'Subir Ideias'},
+  {id:'settings', icon:'⚙️', label:'Configuracoes'}
+];
+
+// ============ IDEAS DATABASE ============
+const ALL_IDEAS = {
+  'Compras': [
+    {title:'Achados de $1 no Walmart que parecem de $50', tags:['walmart','compras','barato','viral']},
+    {title:'Secao secreta do Walmart com precos insanos', tags:['walmart','compras','secreto','viral']},
+    {title:'Walmart vs Target: quem ganha nos precos?', tags:['walmart','target','comparacao','viral']},
+    {title:'Corredor escondido do Target com clearance 70% off', tags:['target','clearance','desconto','viral']},
+    {title:'Tudo que comprei na Target por $20', tags:['target','compras','barato','haul']},
+    {title:'Dollar section do Target: vale ou nao vale?', tags:['target','dollar','barato','compras']},
+    {title:'Haul de outlet: marcas de luxo por preco de banana', tags:['outlet','luxo','marcas','viral']},
+    {title:'Orlando Premium Outlets vs Vineland: qual e MELHOR?', tags:['outlet','orlando','comparacao','viral']},
+    {title:'SHEIN nos EUA: achados na loja fisica', tags:['shein','compras','barato','loja']},
+    {title:'Marshalls e TJ Maxx: achadinhos do dia', tags:['marshalls','tjmaxx','compras','barato']},
+    {title:'Top 10 coisas para comprar no Walmart EUA', tags:['walmart','compras','top10','viral']},
+    {title:'Compras de supermercado no Publix: precos americanos', tags:['publix','supermercado','compras','precos']},
+    {title:'CVS e Walgreens: maquiagem barata nos EUA', tags:['cvs','walgreens','maquiagem','barato']},
+    {title:'Costco nos EUA: vale a pena o membership?', tags:['costco','compras','membership','precos']},
+    {title:'Ross Dress for Less: roupas de marca baratissimas', tags:['ross','compras','roupas','barato']},
+    {title:'POV: primeira vez no Walmart americano', tags:['walmart','pov','viral','primeira vez']},
+    {title:'3 coisas que custam $1 nos EUA e R$100 no Brasil', tags:['compras','precos','comparacao','viral']},
+    {title:'Outlet haul de $500: olha TUDO que comprei', tags:['outlet','haul','compras','viral']},
+    {title:'Coisas que so existem no Walmart americano', tags:['walmart','exclusivo','viral','compras']},
+    {title:'Abri minha mala de compras dos EUA ao vivo', tags:['haul','mala','compras','viral','unboxing']},
+    {title:'Nike Outlet: tenis que no Brasil custa R$800 aqui custa...', tags:['nike','outlet','tenis','viral']},
+    {title:'Apple Store americana: precos que DOEM', tags:['apple','iphone','precos','viral']},
+    {title:'Bath & Body Works: os cheiros que todo brasileiro compra', tags:['bbb','compras','viral','favoritos']},
+    {title:'Desafio: compras completas por MENOS de $50', tags:['desafio','compras','barato','viral']},
+    {title:'Sephora americana vs Brasil: a diferenca e ABSURDA', tags:['sephora','maquiagem','comparacao','viral']},
+    {title:'Coisas BIZARRAS que voce acha no Walmart', tags:['walmart','bizarro','viral','humor']},
+    {title:'GRWM: dia de compras heavy nos outlets', tags:['grwm','outlet','compras','viral']},
+    {title:'Haul GIGANTE de maquiagem: Ulta Beauty', tags:['ulta','maquiagem','haul','viral']},
+    {title:'Tenis Jordan original por $60: onde encontrar', tags:['jordan','tenis','barato','viral']},
+    {title:'Comparando carrinho de compras: EUA vs Brasil', tags:['supermercado','comparacao','viral','precos']},
+    {title:'5 lojas nos EUA que NAO existem no Brasil', tags:['lojas','exclusivo','viral','compras']},
+    {title:'Amazon devolution store: ACHADOS por centavos', tags:['amazon','barato','viral','compras']},
+    {title:'Comprando TUDO que o TikTok mandou: vale a pena?', tags:['tiktok','compras','viral','tendencia']},
+    {title:'Black Friday americana: como realmente funciona', tags:['blackfriday','compras','viral','dicas']},
+    {title:'Home Depot: coisas incriveis que nao existem no Brasil', tags:['homedepot','exclusivo','viral','casa']},
+    {title:'The Loop Orlando: Tommy + Nike Clearance 80% off', tags:['theloop','clearance','nike','viral']},
+    {title:'Ollies Bargain Outlet: a loja MAIS barata de Orlando', tags:['ollies','barato','orlando','viral']},
+    {title:'Florida Mall tour completo: vale ir?', tags:['floridamall','shopping','orlando','tour']},
+    {title:'Cupons de desconto nos outlets: como conseguir GRATIS', tags:['cupons','outlet','desconto','viral']},
+    {title:'Books-a-Million: merch Disney e Harry Potter BARATO', tags:['booksamillion','disney','harrypotter','viral']},
+    {title:'Internacional Drive: tudo que voce encontra nessa rua', tags:['idrive','orlando','compras','tour']},
+    {title:'Lista COMPLETA: tudo que vale comprar nos EUA em 2026', tags:['lista','compras','guia','viral']},
+    {title:'Perfumes nos EUA: precos que nao fazem sentido', tags:['perfume','compras','precos','viral']},
+    {title:'Loja da Disney no outlet: precos vs parque', tags:['disney','outlet','comparacao','viral']},
+    {title:'Melhores horarios pra ir no outlet sem multidao', tags:['outlet','horario','estrategia','viral']}
+  ],
+  'Disney': [
+    {title:'Magic Kingdom em 1 dia: roteiro COMPLETO minuto a minuto', tags:['disney','magickingdom','roteiro','viral']},
+    {title:'EPCOT sem filas: dicas que ninguem conta', tags:['disney','epcot','filas','viral']},
+    {title:'Hollywood Studios: tudo sobre Star Wars Galaxy Edge', tags:['disney','hollywoodstudios','starwars','viral']},
+    {title:'Animal Kingdom: vale a pena gastar um dia inteiro?', tags:['disney','animalkingdom','parque','dicas']},
+    {title:'Lightning Lane vale a pena? Teste completo', tags:['disney','lightninglane','filas','viral']},
+    {title:'Disney Springs: o que fazer sem pagar entrada', tags:['disney','disneysprings','gratis','viral']},
+    {title:'Comidas mais instagramaveis da Disney', tags:['disney','comida','instagram','viral']},
+    {title:'Montanhas-russas da Disney: ranking completo', tags:['disney','montanharussa','ranking','viral']},
+    {title:'Disney com crianca pequena: guia de sobrevivencia', tags:['disney','crianca','familia','viral']},
+    {title:'Quanto custa 1 dia na Disney? TODOS os gastos na tela', tags:['disney','custos','dinheiro','viral']},
+    {title:'POV: chegando na Disney pela primeira vez', tags:['disney','pov','emocional','viral']},
+    {title:'Reacao de brasileiros vendo o castelo pela primeira vez', tags:['disney','reacao','emocional','viral']},
+    {title:'Truques de foto na Disney que ninguem ensina', tags:['disney','fotos','truques','viral']},
+    {title:'Comida secreta da Disney que nao ta no cardapio', tags:['disney','comida','secreto','viral']},
+    {title:'Os 5 ERROS que arruinam seu dia na Disney', tags:['disney','erros','dicas','viral']},
+    {title:'Comparando comida de $15 vs $75 na Disney', tags:['disney','comida','comparacao','viral']},
+    {title:'Bastidores da Disney que visitante NAO pode ver', tags:['disney','bastidores','secreto','viral']},
+    {title:'TRON Lightcycle: a montanha-russa mais rapida da Disney', tags:['disney','tron','montanharussa','viral']},
+    {title:'Dia de chuva na Disney: estrategia COMPLETA', tags:['disney','chuva','dicas','viral']},
+    {title:'Disney VAZIA: os truques pra parque so pra voce', tags:['disney','vazio','hack','viral']},
+    {title:'Desafio: comer em TODOS os paises do EPCOT em 1 dia', tags:['disney','epcot','comida','desafio','viral']},
+    {title:'Early entry na Disney: chegar as 7h muda TUDO', tags:['disney','earlyentry','dicas','viral']},
+    {title:'Lightning Lane por $30: cortei TODAS as filas', tags:['disney','lightninglane','filas','viral']},
+    {title:'Tudo que comi na Disney em 1 dia inteiro', tags:['disney','comida','vlog','viral']},
+    {title:'Magic Kingdom a NOITE: parque completamente diferente', tags:['disney','noite','magickingdom','viral']},
+    {title:'Tianas Bayou Adventure: a NOVA atracao do Magic Kingdom', tags:['disney','tiana','novo','viral','2026']},
+    {title:'Big Thunder Mountain REFORMADA: o que mudou em 2026', tags:['disney','bigthunder','reforma','viral','2026']},
+    {title:'Buzz Lightyear NOVO: a atualizacao que todo mundo pediu', tags:['disney','buzz','novo','viral','2026']},
+    {title:'Frozen Ever After atualizado no Epcot: vale ir de novo?', tags:['disney','frozen','epcot','viral','2026']},
+    {title:'LEVEL99 no Disney Springs: 60 salas de desafio + bar', tags:['disney','disneysprings','level99','viral','2026']},
+    {title:'Boardwalk da Disney: passeio GRATIS que ninguem faz', tags:['disney','boardwalk','gratis','viral']},
+    {title:'Calendario de lotacao Disney 2026: quando ir e quando FUGIR', tags:['disney','calendario','lotacao','viral']},
+    {title:'Disney Dining Plan: vale a pena em 2026?', tags:['disney','dining','economia','viral']},
+    {title:'Settings do celular pra fotos PERFEITAS na Disney', tags:['disney','foto','celular','viral']},
+    {title:'Show de fogos: melhor lugar pra assistir', tags:['disney','fogos','show','viral']},
+    {title:'Disney com adolescente: roteiro que eles vao AMAR', tags:['disney','adolescente','roteiro','viral']},
+    {title:'Personagens da Disney: onde encontrar TODOS sem fila', tags:['disney','personagem','encontro','viral']},
+    {title:'Souvenir da Disney por $5: os mais baratos do parque', tags:['disney','souvenir','barato','viral']},
+    {title:'MagicBand+ vale a pena comprar? Testei tudo', tags:['disney','magicband','tecnologia','viral']},
+    {title:'Fantasia de princesa na Disney: quanto custa?', tags:['disney','princesa','fantasia','viral']},
+    {title:'Os brinquedos mais assustadores pra crianca na Disney', tags:['disney','crianca','medo','viral']},
+    {title:'Brasileiro vs Americano: jeito de curtir a Disney', tags:['disney','brasileiro','comparacao','viral']},
+    {title:'Itens de $10 na Disney que todo brasileiro quer', tags:['disney','compras','souvenirs','viral']},
+    {title:'Fila mais longa da Disney: quanto tempo REALMENTE esperei', tags:['disney','fila','tempo','viral']},
+    {title:'Todas as areas novas da Disney em 2026', tags:['disney','novidades','2026','viral']}
+  ],
+  'Comida': [
+    {title:'Melhores restaurantes brasileiros em Orlando', tags:['comida','brasileiro','orlando','restaurante']},
+    {title:'Fast food americano: ranking dos melhores', tags:['comida','fastfood','ranking','viral']},
+    {title:'Cheesecake Factory: pedidos que valem a pena', tags:['comida','cheesecake','restaurante','viral']},
+    {title:'Cafe da manha americano classico: onde comer', tags:['comida','cafedamanha','orlando','viral']},
+    {title:'Trader Joes: melhores snacks americanos', tags:['comida','traderjoes','snacks','viral']},
+    {title:'Starbucks americano vs Brasil: diferencas', tags:['comida','starbucks','comparacao','viral']},
+    {title:'Tour no Whole Foods: groceries premium nos EUA', tags:['comida','wholefoods','supermercado','viral']},
+    {title:'Comida de parque: onde comer bem gastando pouco', tags:['comida','parque','barato','dicas']},
+    {title:'Churrascaria brasileira em Orlando: Texas de Brazil', tags:['comida','churrascaria','brasileiro','orlando']},
+    {title:'Food trucks de Orlando: melhores opcoes', tags:['comida','foodtruck','orlando','viral']},
+    {title:'POV: pedindo comida em ingles pela primeira vez', tags:['comida','pov','ingles','viral']},
+    {title:'Porcao americana vs brasileira: ABSURDO', tags:['comida','porcao','comparacao','viral']},
+    {title:'Experimentando comida americana ESTRANHA pela 1a vez', tags:['comida','reacao','viral','estranha']},
+    {title:'Ranking: TODOS os fast foods do pior ao melhor', tags:['comida','fastfood','ranking','viral']},
+    {title:'Chick-fil-A: por que americanos sao OBCECADOS?', tags:['comida','chickfila','viral','americano']},
+    {title:'Buffet de $15 nos EUA: olha TUDO que vem', tags:['comida','buffet','barato','viral']},
+    {title:'Sobremesas americanas que brasileiro PRECISA provar', tags:['comida','sobremesa','viral','dicas']},
+    {title:'5 comidas americanas que brasileiro ODEIA', tags:['comida','americano','brasileiro','viral']},
+    {title:'Grocery haul semanal: quanto gasto nos EUA', tags:['comida','grocery','haul','precos','viral']},
+    {title:'In-N-Out vs Five Guys vs Wendys: guerra dos burgers', tags:['comida','burger','comparacao','viral']},
+    {title:'Pedindo o combo mais CARO do McDonalds americano', tags:['comida','mcdonalds','caro','viral']},
+    {title:'Comidas de posto de gasolina nos EUA: surreal', tags:['comida','posto','eua','viral']},
+    {title:'Olive Garden: o italiano dos americanos vale?', tags:['comida','olivegarden','restaurante','viral']},
+    {title:'Tour no corredor de snacks americanos', tags:['comida','snacks','supermercado','viral']},
+    {title:'BBQ americano autentico em Orlando', tags:['comida','bbq','orlando','viral']},
+    {title:'Comparando Starbucks de $3 vs $10', tags:['comida','starbucks','comparacao','viral']},
+    {title:'Brunch americano: por que todo mundo ama?', tags:['comida','brunch','americano','viral']},
+    {title:'Comida de estadio americano: preco CHOCANTE', tags:['comida','estadio','precos','viral']},
+    {title:'Brasileiro experimentando root beer pela 1a vez', tags:['comida','rootbeer','reacao','viral']},
+    {title:'Quanto custa jantar fora em Orlando: 3 faixas', tags:['comida','jantar','orlando','viral']},
+    {title:'Wingstop vs Buffalo Wild Wings: melhor asa?', tags:['comida','asas','comparacao','viral']},
+    {title:'Dunkin Donuts: o cafe que americano bebe TODO dia', tags:['comida','dunkin','cafe','viral']},
+    {title:'Publix Sub: o sanduba mais AMADO da Florida', tags:['comida','publix','sub','viral']},
+    {title:'Walmart Deli: comida pronta por $5', tags:['comida','walmart','barato','viral']},
+    {title:'Provando TODOS os sabores de Oreo americano', tags:['comida','oreo','snack','viral']},
+    {title:'Sorvete americano: Blue Bell vs Ben & Jerrys', tags:['comida','sorvete','comparacao','viral']},
+    {title:'Como pedir no drive-thru sem passar vergonha', tags:['comida','drivethru','ingles','viral']},
+    {title:'Ranking das melhores pizzarias de Orlando', tags:['comida','pizza','orlando','viral']},
+    {title:'Boba Tea em Orlando: os melhores spots', tags:['comida','bobatea','orlando','viral']},
+    {title:'Chipotle vs Taco Bell: comida mexicana nos EUA', tags:['comida','mexicana','comparacao','viral']},
+    {title:'Fazendo americana experimentar comida BR em Orlando', tags:['comida','brasileiro','reacao','viral']},
+    {title:'Waffle House: o restaurante 24h mais famoso dos EUA', tags:['comida','wafflehouse','americano','viral']},
+    {title:'Cracker Barrel: comida sulista americana', tags:['comida','crackerbarrel','sulista','viral']},
+    {title:'Mercado de fazendeiro em Winter Park: tour completo', tags:['comida','winterpark','mercado','viral']},
+    {title:'Quanto custa alimentar uma familia de 4 em Orlando', tags:['comida','familia','custos','viral']}
+  ],
+  'Dicas & Viagem': [
+    {title:'Aluguel de carro em Orlando: guia completo 2026', tags:['carro','aluguel','orlando','viral']},
+    {title:'Chip de celular nos EUA: qual o melhor?', tags:['chip','celular','dicas','viral']},
+    {title:'Airbnb vs Hotel em Orlando: o que compensa mais', tags:['airbnb','hotel','orlando','viral']},
+    {title:'Mala para Orlando: o que levar e nao levar', tags:['mala','viagem','orlando','viral']},
+    {title:'Uber em Orlando: quanto custa e como funciona', tags:['uber','orlando','transporte','viral']},
+    {title:'Seguro viagem EUA: precisa ou nao precisa?', tags:['seguro','viagem','eua','viral']},
+    {title:'Quanto levar de dinheiro para Orlando em 2026', tags:['dinheiro','orlando','viagem','viral']},
+    {title:'Aplicativos essenciais para viagem aos EUA', tags:['apps','viagem','eua','viral']},
+    {title:'Clima em Orlando: o que esperar em cada mes', tags:['clima','orlando','viagem','dicas']},
+    {title:'7 coisas que eu faria DIFERENTE na minha 1a viagem', tags:['erros','viagem','dicas','viral']},
+    {title:'Como economizar $1000 na viagem pra Orlando', tags:['economia','viagem','dicas','viral']},
+    {title:'Tour pela casa que aluguei perto da Disney', tags:['casa','airbnb','tour','viral']},
+    {title:'Coisas que CHOCAM brasileiros nos EUA', tags:['choque','eua','viral','brasileiro']},
+    {title:'Rotina de um brasileiro morando em Orlando', tags:['rotina','morar','orlando','viral']},
+    {title:'Como funciona o drive-thru americano', tags:['drivethru','eua','dicas','viral']},
+    {title:'Coisas GRATIS para fazer em Orlando', tags:['gratis','orlando','dicas','viral']},
+    {title:'Gorjeta nos EUA: como calcular sem vergonha', tags:['gorjeta','tip','eua','viral']},
+    {title:'Gasolina nos EUA: preco e como abastecer', tags:['gasolina','carro','eua','viral']},
+    {title:'Tax nos EUA: por que o preco muda no caixa?', tags:['tax','imposto','eua','viral']},
+    {title:'O que NUNCA fazer nos EUA: regras que BR quebra', tags:['regras','eua','erros','viral']},
+    {title:'Pack with me: mala de 7 dias pra Orlando', tags:['mala','pack','orlando','viral']},
+    {title:'Dirigindo pela primeira vez nos EUA', tags:['dirigir','carro','eua','viral']},
+    {title:'Melhores epocas pra ir a Orlando: mes a mes', tags:['epoca','orlando','planejamento','viral']},
+    {title:'Quanto custa morar em Orlando em 2026', tags:['morar','orlando','custos','viral']},
+    {title:'Voltando pro Brasil: tudo que trouxe na mala', tags:['mala','volta','haul','viral']},
+    {title:'Novidades de Orlando em 2026: tudo que mudou', tags:['novidades','orlando','2026','viral']},
+    {title:'Primeira vez nos EUA: guia de sobrevivencia', tags:['primeira vez','eua','guia','viral']},
+    {title:'SunPass e Toll: pedagios na Florida explicados', tags:['pedagio','sunpass','florida','viral']},
+    {title:'Lake Eola Park: passeio GRATIS mais bonito de Orlando', tags:['lakeeola','gratis','orlando','viral']},
+    {title:'Winter Park: cidadezinha encantadora perto de Orlando', tags:['winterpark','passeio','gratis','viral']},
+    {title:'Celebration: a cidade criada pela Disney', tags:['celebration','disney','cidade','viral']},
+    {title:'Passeio de airboat na Florida: jacare DE PERTO', tags:['airboat','jacare','florida','viral']},
+    {title:'Wekiwa Springs: natureza a 30min de Orlando', tags:['wekiwa','springs','natureza','viral']},
+    {title:'Blue Spring State Park: peixes-boi ao vivo', tags:['bluespring','peixeboi','natureza','viral']},
+    {title:'Cocoa Beach: praia a 1h de Orlando', tags:['cocoabeach','praia','florida','viral']},
+    {title:'Kennedy Space Center: lancamento de foguete AO VIVO', tags:['nasa','foguete','kennedy','viral']},
+    {title:'ICON Park Orlando: roda gigante e atrações', tags:['iconpark','idrive','orlando','viral']},
+    {title:'Golpes em Orlando que turista CAI: como evitar', tags:['golpes','seguranca','orlando','viral']},
+    {title:'Datas mais BARATAS para Orlando em 2026', tags:['datas','barato','2026','viral']},
+    {title:'Roteiro 7 dias Orlando: dia a dia COMPLETO', tags:['roteiro','7dias','orlando','viral']},
+    {title:'Roteiro 10 dias: parques + compras + descanso', tags:['roteiro','10dias','orlando','viral']},
+    {title:'Intercalar parque e compras: a estrategia CERTA', tags:['roteiro','estrategia','dicas','viral']},
+    {title:'Visto americano 2026: passo a passo atualizado', tags:['visto','documentos','eua','viral']},
+    {title:'Entrevista no consulado: o que REALMENTE perguntam', tags:['visto','consulado','dicas','viral']},
+    {title:'Hotel BARATO com cozinha em Orlando: onde encontrar', tags:['hotel','barato','orlando','viral']},
+    {title:'Hospedagem perto da Disney por menos de $100/noite', tags:['hotel','barato','disney','viral']},
+    {title:'Quanto gasto POR DIA em Orlando: conta real', tags:['custos','planejamento','orlando','viral']},
+    {title:'Mochila de parque PERFEITA: tudo que levo', tags:['mochila','parque','dicas','viral']},
+    {title:'Dicas de seguranca em Orlando pra turista', tags:['seguranca','orlando','dicas','viral']},
+    {title:'Outlets a noite: estrategia pra comprar mais barato', tags:['outlet','noite','estrategia','viral']}
+  ],
+  'Universal & Epic': [
+    {title:'Universal Studios vs Islands of Adventure', tags:['universal','comparacao','parque','viral']},
+    {title:'Mundo do Harry Potter: guia COMPLETO', tags:['universal','harrypotter','parque','viral']},
+    {title:'Express Pass Universal: vale o investimento?', tags:['universal','expresspass','filas','viral']},
+    {title:'Velocicoaster: melhor montanha-russa de Orlando?', tags:['universal','velocicoaster','montanharussa','viral']},
+    {title:'CityWalk: restaurantes e balada na Universal', tags:['universal','citywalk','restaurante','viral']},
+    {title:'POV: andando de Velocicoaster pela 1a vez', tags:['universal','velocicoaster','pov','viral']},
+    {title:'Butterbeer: experimentando TODAS as versoes', tags:['universal','harrypotter','butterbeer','viral']},
+    {title:'Hagrid Motorbike: a fila MAIS longa de Orlando', tags:['universal','hagrid','fila','viral']},
+    {title:'Tudo que comi no Wizarding World of Harry Potter', tags:['universal','harrypotter','comida','viral']},
+    {title:'Universal vs Disney: qual parque e MELHOR?', tags:['universal','disney','comparacao','viral']},
+    {title:'Varinha no Harry Potter: vale R$250?', tags:['universal','harrypotter','varinha','viral']},
+    {title:'Horror Nights: evento mais assustador de Orlando', tags:['universal','horrornights','halloween','viral']},
+    {title:'Volcano Bay: water park da Universal vale?', tags:['universal','volcanobay','waterpark','viral']},
+    {title:'Ranking TODAS as montanhas-russas da Universal', tags:['universal','montanharussa','ranking','viral']},
+    {title:'Universal em 1 dia: roteiro minuto a minuto', tags:['universal','roteiro','1dia','viral']},
+    {title:'EPIC UNIVERSE ABRIU: review COMPLETO do novo parque', tags:['epicuniverse','review','novo','viral','2026']},
+    {title:'Epic Universe: Super Nintendo World em Orlando!', tags:['epicuniverse','nintendo','mario','viral','2026']},
+    {title:'Epic Universe: Harry Potter Ministry of Magic', tags:['epicuniverse','harrypotter','ministry','viral','2026']},
+    {title:'Epic Universe: Dark Universe - monstros classicos', tags:['epicuniverse','darkuniverse','monstros','viral','2026']},
+    {title:'Epic Universe: How to Train Your Dragon Isle of Berk', tags:['epicuniverse','dragon','berk','viral','2026']},
+    {title:'Epic Universe: ranking de TODAS as 11 atracoes', tags:['epicuniverse','ranking','atracoes','viral','2026']},
+    {title:'Battle at the Ministry: melhor dark ride do MUNDO?', tags:['epicuniverse','harrypotter','darkride','viral']},
+    {title:'Monsters Unchained: Frankenstein no Epic Universe', tags:['epicuniverse','darkuniverse','frankenstein','viral']},
+    {title:'Mario Kart na vida real: Super Nintendo World Orlando', tags:['epicuniverse','nintendo','mariokart','viral']},
+    {title:'Epic Universe: quanto custa? Ingressos, comida, tudo', tags:['epicuniverse','custos','precos','viral']},
+    {title:'Epic Universe vs Magic Kingdom: qual GANHA?', tags:['epicuniverse','disney','comparacao','viral']},
+    {title:'Hoteis novos Universal: Stella Nova e Terra Luna', tags:['universal','hotel','novo','viral','2026']},
+    {title:'Universal 3 parques em 2 dias: roteiro possivel?', tags:['universal','roteiro','2dias','viral']},
+    {title:'Compras na Universal: lojas que voce PRECISA ir', tags:['universal','compras','lojas','viral']},
+    {title:'Comendo no Leaky Cauldron: cardapio completo', tags:['universal','harrypotter','comida','viral']},
+    {title:'Universal com chuva: melhor dia pra ir', tags:['universal','chuva','dicas','viral']},
+    {title:'Celestial Park no Epic Universe: a area central', tags:['epicuniverse','celestialpark','novo','viral']},
+    {title:'Epic Universe pra crianca: o que pode e o que nao pode', tags:['epicuniverse','crianca','familia','viral']}
+  ],
+  'Outros Parques': [
+    {title:'SeaWorld Orlando: vale a pena em 2026?', tags:['seaworld','parque','orlando','viral']},
+    {title:'SeaQuest Legends of the Deep: novo simulador SeaWorld', tags:['seaworld','seaquest','novo','viral','2026']},
+    {title:'Manta: a montanha-russa DEITADA do SeaWorld', tags:['seaworld','manta','montanharussa','viral']},
+    {title:'Busch Gardens Tampa: vale a viagem de 1h?', tags:['buschgardens','tampa','parque','viral']},
+    {title:'Busch Gardens: montanhas-russas MAIS radicais da Florida', tags:['buschgardens','montanharussa','radical','viral']},
+    {title:'Legoland Florida: perfeito pra crianca de 3-10 anos', tags:['legoland','crianca','familia','viral']},
+    {title:'Fun Spot Orlando: parque BARATO com montanha-russa', tags:['funspot','barato','orlando','viral']},
+    {title:'Gatorland: o parque dos jacares por $28', tags:['gatorland','jacare','barato','viral']},
+    {title:'Discovery Cove: nadando com GOLFINHO em Orlando', tags:['discoverycove','golfinho','experiencia','viral']},
+    {title:'Aquatica: parque aquatico do SeaWorld', tags:['aquatica','waterpark','seaworld','viral']},
+    {title:'TODOS os parques de Orlando rankeados', tags:['ranking','parques','orlando','viral']},
+    {title:'Cirque du Soleil em Disney Springs: vale?', tags:['cirque','disneysprings','show','viral']},
+    {title:'Medieval Times Orlando: jantar com cavaleiros', tags:['medieval','jantar','experiencia','viral']},
+    {title:'ICON Park: roda gigante + museu de cera + SEA LIFE', tags:['iconpark','museu','orlando','viral']},
+    {title:'Andretti Indoor Karting: kart e boliche em Orlando', tags:['andretti','kart','diversao','viral']}
+  ],
+  'Trends & Viral': [
+    {title:'POV: brasileiro no supermercado americano pela 1a vez', tags:['pov','viral','supermercado','brasileiro']},
+    {title:'Coisas que americanos acham NORMAL e brasileiro SURTA', tags:['comparacao','viral','cultura','humor']},
+    {title:'Reply to comment: isso custa QUANTO nos EUA?', tags:['reply','viral','precos','interacao']},
+    {title:'Day in my life: vivendo em Orlando', tags:['dayinmylife','vlog','viral','lifestyle']},
+    {title:'Get ready with me: dia de parque', tags:['grwm','parque','viral','moda']},
+    {title:'Coisas que voce VE vs REALIDADE nos EUA', tags:['expectativa','realidade','viral','morar']},
+    {title:'ASMR: abrindo compras dos EUA', tags:['asmr','compras','viral','unboxing']},
+    {title:'Desafio: 24h gastando so $20 em Orlando', tags:['desafio','barato','viral','orlando']},
+    {title:'OOTD: looks pra cada parque de Orlando', tags:['ootd','moda','parque','viral']},
+    {title:'Mini vlog: 1 semana em Orlando em 60 segundos', tags:['minivlog','rapido','viral','orlando']},
+    {title:'Respondendo perguntas sobre morar nos EUA', tags:['qna','perguntas','viral','morar']},
+    {title:'Unpopular opinion: coisas overrated em Orlando', tags:['opinion','overrated','viral','orlando']},
+    {title:'Packing hacks pra viagem aos EUA', tags:['hacks','mala','viral','viagem']},
+    {title:'Tier list: TODOS os parques de Orlando', tags:['tierlist','parques','ranking','viral']},
+    {title:'Storytime: o dia mais LOUCO em Orlando', tags:['storytime','viral','historia','orlando']},
+    {title:'Coisas que NINGUEM te conta antes de vir pros EUA', tags:['segredo','dicas','viral','eua']},
+    {title:'$10 vs $100 em Orlando: vale gastar mais?', tags:['comparacao','precos','viral','desafio']},
+    {title:'O que tem dentro da minha bolsa de parque', tags:['whatsinmybag','parque','viral','dicas']},
+    {title:'Reagindo a comentarios sobre vida nos EUA', tags:['reacao','comentarios','viral','interacao']},
+    {title:'Rating Orlando de 1 a 10 em cada categoria', tags:['rating','orlando','viral','opiniao']},
+    {title:'Night routine em Orlando', tags:['nightroutine','lifestyle','viral','rotina']},
+    {title:'This or that: edicao Orlando', tags:['thisorthat','viral','orlando','interacao']},
+    {title:'5 red flags de guia turistico em Orlando', tags:['redflags','guia','viral','dicas']},
+    {title:'Brasileiros vs Americanos: como agem no parque', tags:['comparacao','brasileiro','americano','viral']},
+    {title:'Chegando no aeroporto vs voltando com malas', tags:['transformation','viral','humor','viagem']},
+    {title:'POV: fazendo amizade com americano sem ingles', tags:['pov','ingles','viral','humor']},
+    {title:'Expectativa vs Realidade: ferias em Orlando', tags:['expectativa','realidade','viral','humor']},
+    {title:'TOP 3 lugares em Orlando se so pudesse ir em 3', tags:['top3','orlando','viral','dicas']},
+    {title:'Coisas que compraria de NOVO se perdesse tudo', tags:['favoritos','compras','viral','recompra']},
+    {title:'Behind the scenes: como gravo videos em Orlando', tags:['bts','bastidores','viral','creator']},
+    {title:'Storytime: PIOR experiencia que tive em Orlando', tags:['storytime','experiencia','viral','erro']},
+    {title:'Voiceover vlog: narrando meu dia em Orlando', tags:['voiceover','vlog','viral','storytelling']},
+    {title:'Reagindo ao meu PRIMEIRO video sobre Orlando', tags:['reacao','throwback','viral','creator']},
+    {title:'Orlando de GRACA: roteiro sem gastar NADA', tags:['gratis','roteiro','orlando','viral']},
+    {title:'Viagem MAIS barata vs MAIS cara pra Orlando', tags:['comparacao','precos','viagem','viral']},
+    {title:'5 coisas que parecem golpe mas sao REAIS em Orlando', tags:['curiosidade','orlando','viral','dicas']},
+    {title:'Fazendo americana experimentar comida BR', tags:['comida','brasileiro','reacao','viral']},
+    {title:'Trend: mostrando evolucao das minhas viagens', tags:['trend','evolucao','viral','viagem']},
+    {title:'Parque VAZIO: quando acontece e como aproveitar', tags:['hack','vazio','parque','viral']},
+    {title:'Duet com gringo: reagindo a Orlando', tags:['duet','gringo','viral','reacao']}
+  ]
+};
+
+// ============ HOOKS DATABASE ============
+const ALL_HOOKS = {
+  'Compras': [
+    'Voce NAO pode comprar isso no Brasil...',
+    'Achei isso por $1 no Walmart e quase nao acreditei',
+    'A secao que ninguem olha no Target esconde ISSO',
+    'Parei de comprar no Brasil depois que vi esses precos',
+    'Se voce vem pros EUA, NAO compre isso no Brasil',
+    'Olha o preco disso no outlet... impossivel',
+    'Gastei so $20 e olha TUDO que trouxe',
+    'Essa e a lista DEFINITIVA de compras nos EUA',
+    'Coisas que TODO brasileiro compra nos EUA e NAO deveria',
+    'Comprei isso por $3 e no Brasil custa R$200',
+    'O corredor do Walmart que ninguem mostra no TikTok',
+    'Voce ta perdendo dinheiro se nao for NESSA loja',
+    'Minha mala voltou com 30kg a mais por causa DISSO'
+  ],
+  'Disney': [
+    'O truque que corta 2 HORAS de fila na Disney',
+    'Ninguem te conta esse segredo do Magic Kingdom',
+    'Fui na Disney e descobri isso por acidente',
+    'Se voce for na Disney, faz ISSO primeiro',
+    'Esse e o erro #1 que brasileiros cometem na Disney',
+    'A comida mais cara da Disney custa ISSO',
+    'Disney com chuva: o que fazer?',
+    'Cheguei as 7h na Disney e olha a diferenca',
+    'PARA de fazer fila na Disney e faz ISSO',
+    'Gastei $0 na Disney Springs e aproveitei TUDO',
+    'Brasileiro na Disney faz isso e americano SURTA',
+    'O brinquedo que FECHA todo dia cedo na Disney',
+    'Nao va na Disney sem saber DISSO'
+  ],
+  'Comida': [
+    'O prato mais pedido dos EUA e ESSE',
+    'Nunca peca isso num restaurante americano',
+    'Cafe da manha de $5 nos EUA parece ISSO',
+    'Experimentei a comida mais estranha dos EUA',
+    'Esse restaurante em Orlando tem fila TODO dia',
+    'Brasileiros ficam CHOCADOS com porcao americana',
+    'Tem um restaurante SECRETO em Orlando que pouca gente sabe',
+    'Pedi o prato mais caro do cardapio e veio ISSO',
+    'Brasileiro comendo fast food americano pela 1a vez',
+    'A bebida que americano bebe e brasileiro ESTRANHA',
+    'Nunca coma no parque sem ver ESSE video antes',
+    'Onde comer BEM e BARATO em Orlando: minha lista'
+  ],
+  'Preco / Reacao': [
+    'Olha quanto custa isso nos EUA...',
+    'No Brasil isso custa R$500, aqui custa...',
+    'Preco de supermercado nos EUA: CHOCANTE',
+    'Voce pagaria ISSO por um Iphone?',
+    'Gasolina nos EUA custa QUANTO?!',
+    'Aluguel de carro por 1 semana: o preco VAI TE CHOCAR',
+    'Isso custa R$50 no Brasil. Nos EUA? Olha...',
+    'A conta do restaurante americano com gorjeta fica...',
+    'Paguei ISSO de pedagio em 1 semana na Florida',
+    'Seguro viagem custou X e salvou Y: faria de novo'
+  ],
+  'Dica Rapida': [
+    'Se voce vem pra Orlando, salva esse video',
+    'Dica que vai te economizar $200 na viagem',
+    'TODO brasileiro precisa saber disso antes de viajar',
+    'Erro que 90% dos turistas cometem em Orlando',
+    'Faca ISSO antes de ir pro outlet',
+    'Uma dica simples que muda sua viagem inteira',
+    'Essa informacao vale OURO pra quem vai pra Orlando',
+    'Anota esse APP antes de embarcar pros EUA',
+    '5 coisas que eu queria saber ANTES da minha 1a viagem',
+    'A dica mais importante pra quem viaja com crianca',
+    'NUNCA troque dinheiro no aeroporto, faz ISSO',
+    'Salva esse roteiro de 7 dias em Orlando',
+    'O melhor mes pra ir a Orlando e ESSE e eu vou provar'
+  ],
+  'Storytelling': [
+    'Aconteceu algo inacreditavel no parque hoje...',
+    'Eu nao esperava isso nos EUA...',
+    'A historia mais louca que ja vivi em Orlando',
+    'Olha o que achei andando pela rua nos EUA',
+    'Nao acreditei quando vi isso no supermercado',
+    'Passei a maior vergonha da minha vida no restaurante americano',
+    'Fui parada pela policia nos EUA e aconteceu isso',
+    'Meu carro quebrou no meio da Florida e...',
+    'Perdi meu passaporte em Orlando: o que aconteceu',
+    'A experiencia mais emocionante que ja tive num parque'
+  ],
+  'Informativo': [
+    'Guia COMPLETO: tudo que voce precisa saber sobre Orlando',
+    'Passo a passo: como planejar sua viagem a Orlando do ZERO',
+    'Documentos necessarios pra entrar nos EUA em 2026',
+    'Quanto custa uma viagem de 7 dias pra Orlando: planilha completa',
+    'Comparativo REAL: o que compensa comprar nos EUA',
+    'Roteiro pronto: 5 dias em Orlando sem perder nada',
+    'Tudo sobre o visto americano: passo a passo atualizado',
+    'Como montar sua mala PERFEITA pro clima de Orlando',
+    'Guia do transporte em Orlando: carro, uber, shuttle',
+    'Calendario de Orlando: melhor epoca pra cada coisa'
+  ]
+};
+
+// ============ VIRAL DATABASE ============
+const VIRAL_DATA = [
+  {title:'Secao escondida do Target com 70% off', views:'2.4M', likes:'180K', cat:'Compras', tags:['target','clearance','desconto']},
+  {title:'POV: voce no Walmart pela primeira vez', views:'5.1M', likes:'420K', cat:'Compras', tags:['walmart','pov','primeira vez']},
+  {title:'Magic Kingdom em 60 segundos', views:'3.8M', likes:'290K', cat:'Disney', tags:['disney','magickingdom','rapido']},
+  {title:'Precos do supermercado americano chocam brasileiros', views:'1.9M', likes:'150K', cat:'Preco', tags:['supermercado','precos','choque']},
+  {title:'Get Ready: dia de outlet em Orlando', views:'2.7M', likes:'210K', cat:'Compras', tags:['outlet','grwm','orlando']},
+  {title:'EPCOT World Showcase food tour completo', views:'1.5M', likes:'120K', cat:'Comida', tags:['epcot','comida','tour']},
+  {title:'Haul gigante de compras nos EUA', views:'4.2M', likes:'350K', cat:'Compras', tags:['haul','compras','eua']},
+  {title:'A montanha-russa mais assustadora de Orlando', views:'3.1M', likes:'260K', cat:'Universal', tags:['universal','montanharussa','medo']},
+  {title:'Cafe da manha em diner americano classico', views:'2.0M', likes:'165K', cat:'Comida', tags:['cafedamanha','diner','comida']},
+  {title:'Tudo por $1 no Dollar Tree', views:'6.3M', likes:'500K', cat:'Compras', tags:['dollartree','barato','compras']},
+  {title:'Harry Potter Butterbeer: vale R$45?', views:'1.8M', likes:'140K', cat:'Universal', tags:['harrypotter','butterbeer','universal']},
+  {title:'Tour pela casa Airbnb perto da Disney', views:'1.2M', likes:'95K', cat:'Viagem', tags:['airbnb','casa','disney','viagem']},
+  {title:'Guia COMPLETO: 7 dias em Orlando sem desperdicar nada', views:'3.5M', likes:'280K', cat:'Dicas', tags:['guia','roteiro','orlando']},
+  {title:'Quanto custa REALMENTE uma viagem pra Orlando em 2026', views:'4.8M', likes:'390K', cat:'Dicas', tags:['custos','planejamento','orlando']},
+  {title:'Roteiro dia a dia: Orlando com crianca', views:'2.9M', likes:'230K', cat:'Disney', tags:['crianca','roteiro','familia']},
+  {title:'Ranking TODOS os parques de Orlando do pior ao melhor', views:'7.2M', likes:'580K', cat:'Parques', tags:['ranking','parques','orlando']},
+  {title:'Coisas que brasileiro faz nos EUA que americano acha estranho', views:'8.1M', likes:'650K', cat:'Lifestyle', tags:['brasileiro','americano','cultura']},
+  {title:'24h comendo so em parque: gastei QUANTO?', views:'3.3M', likes:'270K', cat:'Comida', tags:['desafio','parque','comida']},
+  {title:'Nike Outlet: achei Air Jordan por $49', views:'5.5M', likes:'440K', cat:'Compras', tags:['nike','jordan','outlet']},
+  {title:'Checklist COMPLETO para viagem a Orlando', views:'2.1M', likes:'170K', cat:'Dicas', tags:['checklist','planejamento','dicas']},
+  {title:'Erros que DESTROEM sua viagem a Orlando', views:'4.1M', likes:'330K', cat:'Dicas', tags:['erros','dicas','orlando']},
+  {title:'Comida de $5 vs $50 na Disney: vale a diferenca?', views:'6.0M', likes:'480K', cat:'Comida', tags:['comparacao','disney','comida']},
+  {title:'Mala PERFEITA pra Orlando: cada item explicado', views:'2.6M', likes:'210K', cat:'Dicas', tags:['mala','packing','dicas']},
+  {title:'Velocicoaster POV completo: a cara de MEDO', views:'9.3M', likes:'750K', cat:'Universal', tags:['velocicoaster','pov','universal']},
+  {title:'O truque do Early Entry que pouca gente sabe', views:'3.0M', likes:'240K', cat:'Disney', tags:['early entry','truque','disney']},
+  {title:'Grocery haul: compras da semana por $80 nos EUA', views:'1.7M', likes:'135K', cat:'Comida', tags:['grocery','haul','precos']},
+  {title:'Dirigindo pela 1a vez nos EUA: tudo que precisa saber', views:'2.8M', likes:'220K', cat:'Dicas', tags:['dirigir','carro','dicas']},
+  {title:'Tier list dos fast foods americanos', views:'5.9M', likes:'470K', cat:'Comida', tags:['tierlist','fastfood','ranking']},
+  {title:'Brasileiro reagindo a comida tipica americana', views:'4.4M', likes:'350K', cat:'Comida', tags:['reacao','comida','americano']},
+  {title:'Comprei tudo que o TikTok mandou no Walmart', views:'6.7M', likes:'530K', cat:'Compras', tags:['tiktok','walmart','trend']}
+];
+
+// ============ SCRIPT TEMPLATES ============
+const TEMPLATES = {
+  walmart: {
+    desc: 'Video explorando achados incriveis no Walmart com foco em precos e produtos que nao existem no Brasil',
+    objetivo: 'Gerar engajamento mostrando a diferenca de precos e produtos exclusivos EUA',
+    tom: 'Animado, surpreso, didatico',
+    publicoAlvo: 'Brasileiros planejando viagem aos EUA ou curiosos sobre precos americanos',
+    horarios: '11h ou 19h (horarios de maior engajamento)',
+    hooks: ['Achei isso por $1 no Walmart e SURTEI','Secao secreta do Walmart que NINGUEM mostra','Voce NAO vai acreditar no preco disso no Walmart'],
+    narracoes: ['Gente, olha isso aqui. Isso no Brasil custa facil uns 200 reais e aqui ta custando...','Eu to no Walmart e achei uma secao que ninguem fala. Vem comigo que eu vou mostrar tudo','Toda vez que eu venho no Walmart eu acho coisas absurdas, e hoje nao foi diferente'],
+    takes: [
+      {title:'Abertura / Hook', desc:'Selfie cam, segurando produto com cara de surpresa. Mostrar preco.'},
+      {title:'Tour pelo corredor', desc:'Camera apontando para prateleiras, movendo devagar. Narrar os precos.'},
+      {title:'Comparacao de precos', desc:'Tela dividida ou texto na tela: preco EUA vs Brasil'},
+      {title:'Produtos favoritos', desc:'Close nos produtos na mao ou no carrinho. Mostrar 3-5 itens.'},
+      {title:'CTA Final', desc:'Selfie cam no caixa ou saindo. Perguntar qual produto mais chocou.'}
+    ],
+    ctas: ['Comenta qual produto te chocou mais!','Salva pra quando vier pros EUA','Marca alguem que precisa ver esses precos'],
+    hashtags: ['#walmart','#walmartfinds','#comprasnoseua','#orlando','#vidanoseua','#dicasdeviagem','#brasileirosnoexterior','#achados']
+  },
+  target: {
+    desc: 'Explorando a Target americana com foco em secoes de clearance, dollar spot e produtos exclusivos',
+    objetivo: 'Mostrar achados incriveis e inspirar compras inteligentes na Target',
+    tom: 'Empolgado, curadoria, "best finds"',
+    publicoAlvo: 'Mulheres 20-35, amantes de compras e decoracao',
+    horarios: '10h ou 20h',
+    hooks: ['A secao que ninguem olha na Target esconde ISSO','Target haul: tudo por menos de $5','Corredor secreto da Target com 70% OFF'],
+    narracoes: ['Vem comigo pra Target que hoje eu vou mostrar a secao que ninguem olha...','Se voce ama comprar na Target, esse video e pra voce. Achei coisas INCRIVEIS...','Dollar spot da Target sempre me surpreende e hoje nao foi diferente'],
+    takes: [
+      {title:'Hook na entrada', desc:'Chegando na Target, mostrar fachada e entrar empolgada'},
+      {title:'Dollar Spot tour', desc:'Mostrar itens do dollar spot com precos na tela'},
+      {title:'Clearance section', desc:'Ir no fundo da loja, mostrar etiquetas vermelhas e amarelas'},
+      {title:'Favorites close-up', desc:'Mostrar cada achado em detalhe com preco'},
+      {title:'Checkout + CTA', desc:'Mostrar sacolas e total gasto. Pedir pra salvarem.'}
+    ],
+    ctas: ['Salva pra sua proxima ida na Target!','Qual achado voce mais gostou?','Marca sua amiga que ama Target'],
+    hashtags: ['#target','#targetfinds','#targetdollarspot','#clearance','#compras','#achadostarget','#targethaul']
+  },
+  disney: {
+    desc: 'Conteudo sobre os parques Disney com dicas praticas, truques para economizar tempo e experiencias imperdíveis',
+    objetivo: 'Posicionar como referencia Disney Orlando e ajudar seguidores a planejar melhor',
+    tom: 'Magico, empolgado, insider tips',
+    publicoAlvo: 'Familias e casais planejando viagem a Disney Orlando',
+    horarios: '12h ou 21h',
+    hooks: ['O truque que NINGUEM conta sobre a Disney','Fiz isso e cortei 2 HORAS de fila','Voce esta fazendo a Disney ERRADO se nao faz isso'],
+    narracoes: ['Atencao se voce esta planejando ir na Disney: essa dica vai mudar sua experiencia...','Eu vou te contar o truque que os funcionarios da Disney nao divulgam...','Depois de ir na Disney 20 vezes, eu descobri que o segredo e...'],
+    takes: [
+      {title:'Hook na entrada do parque', desc:'Filmando o castelo ou icone do parque, camera em movimento'},
+      {title:'Dica principal', desc:'Selfie cam explicando a dica/truque com entusiasmo'},
+      {title:'Mostrando na pratica', desc:'B-roll aplicando a dica, mostrando resultado (fila vazia, comida, etc)'},
+      {title:'Dica bonus', desc:'Uma dica extra rapida para quem ficou ate o final'},
+      {title:'CTA com view do parque', desc:'Encerrar com vista bonita + pedir para salvar/seguir'}
+    ],
+    ctas: ['Salva pra sua viagem!','Comenta se voce sabia dessa dica','Segue pra mais dicas de Orlando'],
+    hashtags: ['#disney','#disneyworld','#magickingdom','#epcot','#disneyorlando','#dicasdisney','#orlando','#viagemdisney']
+  },
+  outlet: {
+    desc: 'Tour pelos outlets de Orlando mostrando precos, marcas e estrategias de compras inteligentes',
+    objetivo: 'Ajudar seguidores a comprar melhor nos outlets e mostrar precos reais',
+    tom: 'Pratico, empolgado, "money saving"',
+    publicoAlvo: 'Brasileiros que vem fazer compras em Orlando',
+    horarios: '10h ou 18h',
+    hooks: ['Outlet de Orlando: os precos vao te CHOCAR','Vim no outlet e olha o que achei por $15','Marcas de luxo com 80% de desconto: e real'],
+    narracoes: ['Estou no Orlando Premium Outlet e vou mostrar os melhores precos do dia...','Trouxe minha sacola vazia e vou encher com os melhores achados do outlet...','Se voce quer saber se outlet vale a pena, fica ate o final desse video'],
+    takes: [
+      {title:'Chegada no outlet', desc:'Filmando estacionamento/entrada, mostrar quais lojas tem'},
+      {title:'Tour pelas lojas', desc:'Entrar em 3-4 lojas top, mostrar precos e produtos'},
+      {title:'Melhor achado', desc:'Destaque pro melhor achado do dia com preco antes/depois'},
+      {title:'Haul final', desc:'Mostrar tudo que comprou espalhado com precos'},
+      {title:'Resumo + CTA', desc:'Total gasto, dica final, pedir para comentar'}
+    ],
+    ctas: ['Comenta qual loja voce quer ver mais!','Salva pra quando vier pra Orlando','Marca quem precisa VER esses precos'],
+    hashtags: ['#outlet','#outletorlando','#premiumoutlet','#compras','#marcas','#desconto','#shoppingorlando']
+  },
+  comida: {
+    desc: 'Explorando a gastronomia americana e brasileira em Orlando com reviews e reacoes',
+    objetivo: 'Engajar com conteudo de comida e ajudar na escolha de restaurantes',
+    tom: 'Hungry, divertido, review honesto',
+    publicoAlvo: 'Foodies brasileiros e pessoas planejando onde comer em Orlando',
+    horarios: '12h ou 19h',
+    hooks: ['O prato mais pedido dos EUA e ESSE','Nunca peca ISSO num restaurante americano','Cafe da manha americano: R$25 e vem TUDO ISSO'],
+    narracoes: ['Vou experimentar o prato mais famoso desse restaurante e dar minha opiniao sincera...','Toda vez que eu venho nesse lugar eu peco isso e nunca me arrependo...','Brasileiros PRECISAM experimentar isso quando vierem pros EUA'],
+    takes: [
+      {title:'Chegando no restaurante', desc:'Fachada, mostrar nome e fila se tiver'},
+      {title:'Cardapio / Pedido', desc:'Mostrar cardapio, explicar o que esta pedindo e por que'},
+      {title:'Comida chegando', desc:'Close na comida, reacao genuina, mostrar tamanho'},
+      {title:'Experimentando', desc:'Primeira garfada/mordida com reacao real'},
+      {title:'Veredito + CTA', desc:'Nota de 0-10, preco pago, se vale a pena'}
+    ],
+    ctas: ['Comenta se voce comeria isso!','Salva pra quando vier pra Orlando','Que nota voce daria?'],
+    hashtags: ['#comida','#foodie','#orlando','#restaurante','#comidaamericana','#foodreview','#dicasorlando']
+  },
+  viagem: {
+    desc: 'Dicas praticas de viagem e lifestyle para quem esta vindo ou morando em Orlando',
+    objetivo: 'Ser referencia em dicas praticas de Orlando para brasileiros',
+    tom: 'Informativo, amigavel, util',
+    publicoAlvo: 'Brasileiros planejando viagem ou morando em Orlando',
+    horarios: '9h ou 20h',
+    hooks: ['Se voce vem pra Orlando, SALVA esse video','O erro #1 dos brasileiros em Orlando','Dica que vai te economizar $200 na viagem'],
+    narracoes: ['Atencao: essa dica vai mudar completamente sua viagem pra Orlando...','Depois de morar aqui X anos, posso dizer que o principal e...','Se eu pudesse dar UMA dica pra quem vem pra Orlando, seria essa'],
+    takes: [
+      {title:'Hook direto', desc:'Selfie cam, olhando na camera, frase impactante'},
+      {title:'Contexto', desc:'Explicar o problema/situacao que a dica resolve'},
+      {title:'Dica principal', desc:'Mostrar a dica na pratica com exemplos visuais'},
+      {title:'Prova/Resultado', desc:'Mostrar como a dica funciona com numeros/resultado'},
+      {title:'CTA', desc:'Pedir pra salvar e seguir para mais dicas'}
+    ],
+    ctas: ['Salva esse video!','Manda pra alguem que vem pra Orlando','Segue pra mais dicas assim'],
+    hashtags: ['#orlando','#dicasdeviagem','#viagem','#eua','#brasileirosnoexterior','#dicasorlando','#morarfora']
+  },
+  universal: {
+    desc: 'Conteudo sobre Universal Studios e Islands of Adventure com dicas e experiencias',
+    objetivo: 'Ser referencia Universal Orlando e ajudar no planejamento',
+    tom: 'Aventureiro, empolgado, dica insider',
+    publicoAlvo: 'Fas de parques e familias planejando visita a Universal',
+    horarios: '11h ou 20h',
+    hooks: ['Universal ou Disney? A resposta vai te SURPREENDER','O segredo pra aproveitar a Universal ao maximo','Velocicoaster: a montanha-russa mais INSANA de Orlando'],
+    narracoes: ['Estou na Universal e vou mostrar como aproveitar ao maximo sem gastar fortuna...','Harry Potter World e tudo que dizem e mais, vem ver...','Se voce quer adrenalina, esse parque e obrigatorio'],
+    takes: [
+      {title:'Entrada do parque', desc:'Filmando entrada, globo Universal, clima empolgante'},
+      {title:'Atracao principal', desc:'Mostrando a atracao, fila, experiencia'},
+      {title:'Comida/Pausa', desc:'Experimentando comida tematica (Butterbeer, etc)'},
+      {title:'Dica insider', desc:'Compartilhar truque que pouca gente sabe'},
+      {title:'Encerramento + CTA', desc:'Resumo do dia, highlight principal, pedir follow'}
+    ],
+    ctas: ['Voce prefere Universal ou Disney? Comenta!','Salva pra seu roteiro de Orlando','Segue pra mais parques'],
+    hashtags: ['#universal','#universalstudios','#harrypotter','#islandsofadventure','#orlando','#parques','#velocicoaster']
+  },
+  _default: {
+    desc: 'Video sobre a vida e experiencias em Orlando para brasileiros',
+    objetivo: 'Engajar e informar brasileiros sobre Orlando',
+    tom: 'Autentico, informativo, divertido',
+    publicoAlvo: 'Brasileiros interessados em Orlando e EUA',
+    horarios: '12h ou 20h',
+    hooks: ['Voce precisa saber disso sobre Orlando','Isso so acontece nos EUA...','Ninguem te conta isso sobre morar fora'],
+    narracoes: ['Hoje eu vou compartilhar algo que todo brasileiro precisa saber...','Vem comigo que eu vou te mostrar algo incrivel...','Presta atencao nessa dica porque ela vale ouro'],
+    takes: [
+      {title:'Hook forte', desc:'Abertura direta, olhando na camera'},
+      {title:'Desenvolvimento', desc:'Contar/mostrar o conteudo principal'},
+      {title:'Detalhe extra', desc:'Informacao bonus ou bastidor'},
+      {title:'Prova social', desc:'Mostrar resultado, numero, prova visual'},
+      {title:'CTA', desc:'Encerrar com pedido claro de acao'}
+    ],
+    ctas: ['Comenta o que voce achou!','Salva pra depois','Segue pra mais conteudo de Orlando'],
+    hashtags: ['#orlando','#viagem','#eua','#brasileirosnoexterior','#florida','#vidanoseua']
+  }
+};
+
+// ============ TRAVEL DATABASE ============
+const TRAVEL_DB = {
+  orlando: {
+    compras: [
+      {name:'Orlando Premium Outlets', time:'10h', type:'Shopping', dur:3},
+      {name:'Orlando Vineland Outlets', time:'10h', type:'Shopping', dur:3},
+      {name:'Walmart Supercenter', time:'09h', type:'Compras', dur:2},
+      {name:'Target', time:'10h', type:'Compras', dur:2},
+      {name:'Ross / TJ Maxx / Marshalls', time:'10h', type:'Compras', dur:2},
+      {name:'Dollar Tree', time:'14h', type:'Compras rapidas', dur:1},
+      {name:'Bath & Body Works', time:'11h', type:'Compras', dur:1},
+      {name:'Best Buy', time:'11h', type:'Eletronicos', dur:1.5},
+      {name:'Apple Store Millenia', time:'11h', type:'Eletronicos', dur:1}
+    ],
+    parques: [
+      {name:'Magic Kingdom', time:'08h', type:'Parque Disney', dur:10},
+      {name:'EPCOT', time:'09h', type:'Parque Disney', dur:9},
+      {name:'Hollywood Studios', time:'08h', type:'Parque Disney', dur:8},
+      {name:'Animal Kingdom', time:'08h', type:'Parque Disney', dur:8},
+      {name:'Universal Studios', time:'09h', type:'Parque Universal', dur:9},
+      {name:'Islands of Adventure', time:'09h', type:'Parque Universal', dur:8},
+      {name:'SeaWorld', time:'09h', type:'Parque', dur:7},
+      {name:'LEGOLAND', time:'10h', type:'Parque', dur:6}
+    ],
+    comida: [
+      {name:'Cafe da manha em Diner americano', time:'08h', type:'Refeicao', dur:1},
+      {name:'Cheesecake Factory', time:'18h', type:'Jantar', dur:1.5},
+      {name:'Texas de Brazil', time:'19h', type:'Jantar', dur:2},
+      {name:'Popeyes / Chick-fil-A', time:'12h', type:'Fast food', dur:0.5},
+      {name:'Shake Shack', time:'12h', type:'Fast food', dur:0.5},
+      {name:'Boba Tea shop', time:'15h', type:'Snack', dur:0.5},
+      {name:'Disney Springs restaurantes', time:'18h', type:'Jantar', dur:2}
+    ],
+    experiencias: [
+      {name:'Disney Springs (sem entrada)', time:'16h', type:'Passeio', dur:3},
+      {name:'CityWalk Universal', time:'18h', type:'Noturno', dur:3},
+      {name:'International Drive', time:'15h', type:'Passeio', dur:2},
+      {name:'Celebration Town', time:'16h', type:'Passeio', dur:2},
+      {name:'Icon Park / Roda Gigante', time:'18h', type:'Atracoes', dur:2}
+    ]
+  },
+  miami: {
+    compras: [
+      {name:'Sawgrass Mills Outlet', time:'10h', type:'Shopping', dur:4},
+      {name:'Bayside Marketplace', time:'11h', type:'Shopping', dur:2},
+      {name:'Aventura Mall', time:'10h', type:'Shopping', dur:3}
+    ],
+    parques: [],
+    comida: [
+      {name:'Versailles Cuban Restaurant', time:'12h', type:'Cubano', dur:1.5},
+      {name:'Joe\'s Stone Crab', time:'18h', type:'Seafood', dur:2},
+      {name:'Havana 1957', time:'19h', type:'Jantar', dur:1.5}
+    ],
+    experiencias: [
+      {name:'South Beach', time:'09h', type:'Praia', dur:4},
+      {name:'Wynwood Walls', time:'14h', type:'Arte', dur:2},
+      {name:'Little Havana', time:'11h', type:'Cultura', dur:2},
+      {name:'Ocean Drive a noite', time:'20h', type:'Noturno', dur:3},
+      {name:'Key Biscayne', time:'10h', type:'Praia', dur:4}
+    ]
+  }
+};
+
+// ============ PERFORMANCE DATA ============
+const PERF_DATA = {
+  formatos: {labels:['Reels','TikTok','Carrossel','Story','IGTV'],data:[45,30,12,8,5],colors:['#F97316','#EC4899','#8B5CF6','#3B82F6','#10B981']},
+  views: {labels:['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],data:[12000,18000,25000,32000,28000,45000,62000,58000,71000,89000,95000,120000]},
+  retencao: {labels:['0s','3s','5s','10s','15s','20s','30s','45s','60s'],data:[100,82,70,55,42,35,28,20,15]},
+  melhoresTemas: [
+    {tema:'Compras Walmart/Target', media:'45K views', engajamento:'8.2%'},
+    {tema:'Disney dicas', media:'38K views', engajamento:'7.5%'},
+    {tema:'Precos / Comparacao', media:'52K views', engajamento:'9.1%'},
+    {tema:'Comida americana', media:'35K views', engajamento:'6.8%'},
+    {tema:'Outlet haul', media:'41K views', engajamento:'7.9%'}
+  ],
+  insights: [
+    'Videos de COMPRAS com precos na tela tem 3x mais salvamentos',
+    'Hook nos primeiros 2 segundos aumenta retencao em 40%',
+    'Posts as 11h e 19h performam 60% melhor',
+    'Reels entre 15-30 segundos tem melhor taxa de conclusao',
+    'Conteudo de comparacao Brasil vs EUA gera mais comentarios',
+    'Videos com "POV" no titulo tem 2x mais compartilhamentos',
+    'Carrosseis educativos convertem mais seguidores que Reels',
+    'Usar emojis no hook aumenta CTR em 25%'
+  ]
+};
+
+// ============ STATE ============
+let currentSection = 'ideas';
+
+// Load from embedded data first, then localStorage fallback
+function loadEmbeddedData(){
+  const el = document.getElementById('olai-embedded-data');
+  if(el && el.textContent.trim()){
+    try { return JSON.parse(el.textContent); } catch(e){ return null; }
+  }
+  return null;
+}
+const _embedded = loadEmbeddedData();
+let savedIdeas = _embedded ? (_embedded.bank || []) : JSON.parse(localStorage.getItem('olai_bank') || '[]');
+let calendarEvents = _embedded ? (_embedded.cal || {}) : JSON.parse(localStorage.getItem('olai_cal') || '{}');
+// Sync to localStorage too
+if(_embedded){ localStorage.setItem('olai_bank',JSON.stringify(savedIdeas)); localStorage.setItem('olai_cal',JSON.stringify(calendarEvents)); if(_embedded.apiKey) localStorage.setItem('olai_openai_key',_embedded.apiKey); }
+
+// ============ HELPERS ============
+function normalize(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim()}
+function rand(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function getTemplate(text){
+  const n = normalize(text);
+  const keys = Object.keys(TEMPLATES).filter(k=>k!=='_default');
+  for(const k of keys){ if(n.includes(k)) return TEMPLATES[k]; }
+  if(n.includes('loja')||n.includes('compra')||n.includes('preco')||n.includes('haul')||n.includes('barato')) return TEMPLATES.walmart;
+  if(n.includes('parque')||n.includes('fila')||n.includes('atracao')||n.includes('montanha')) return TEMPLATES.disney;
+  if(n.includes('restaurante')||n.includes('comer')||n.includes('prato')||n.includes('cafe')) return TEMPLATES.comida;
+  if(n.includes('dica')||n.includes('chip')||n.includes('carro')||n.includes('mala')||n.includes('hotel')) return TEMPLATES.viagem;
+  return TEMPLATES._default;
+}
+function saveBank(){localStorage.setItem('olai_bank',JSON.stringify(savedIdeas))}
+function saveCal(){localStorage.setItem('olai_cal',JSON.stringify(calendarEvents))}
+
+// ============ MODAL ============
+function openScriptModal(ideaText){
+  const apiKey = localStorage.getItem('olai_openai_key') || '';
+  const modal = document.getElementById('modalContent');
+  document.getElementById('modalBg').classList.add('open');
+
+  if(!apiKey){
+    modal.innerHTML = `
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h2>⚙️ API Key Necessaria</h2>
+      <p class="modal-sub">Para gerar roteiros com IA, voce precisa configurar sua API Key da OpenAI.</p>
+      <div style="text-align:center;padding:20px">
+        <p style="color:var(--muted);margin-bottom:16px">Va em <strong style="color:var(--orange)">Configuracoes</strong> e adicione sua chave da OpenAI.</p>
+        <button class="btn" onclick="closeModal();switchSection('settings')">⚙️ Ir para Configuracoes</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Show loading
+  modal.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2>📝 Gerando Roteiro com IA...</h2>
+    <p class="modal-sub">${ideaText}</p>
+    <div class="ai-loading">
+      <div class="ai-spinner"></div>
+      <p>A inteligencia artificial esta criando seu roteiro completo...<br>Isso pode levar alguns segundos.</p>
+    </div>
+  `;
+
+  const safeIdea = ideaText.replace(/'/g,"\\'");
+
+  const systemPrompt = `Voce e um especialista em criacao de conteudo viral para TikTok e Instagram Reels, focado no nicho de viagem/turismo para Orlando, Florida, voltado para o publico brasileiro.
+
+Voce DEVE responder SEMPRE em portugues brasileiro.
+
+Para cada ideia de video, gere um roteiro COMPLETO e DETALHADO no formato JSON (sem markdown, sem code blocks, apenas JSON puro) com esta estrutura exata:
+{
+  "descricao": "descricao curta do video",
+  "objetivo": "objetivo principal (ex: engajamento, viral, educar, vender)",
+  "tom": "tom do video (ex: divertido, informativo, dramatico)",
+  "publicoAlvo": "quem vai assistir",
+  "horarios": "melhores horarios para postar",
+  "gravacao": "como gravar (ex: selfie, POV, transicoes, a-roll + b-roll)",
+  "hook": "frase de abertura matadora para prender nos primeiros 2 segundos",
+  "narracao": "texto completo da narracao do video com TODAS as falas que a pessoa deve dizer, palavra por palavra",
+  "takes": [
+    {"title": "Take 1 - Nome da cena", "desc": "Descricao detalhada do que filmar, angulo, enquadramento, o que mostrar, o que falar neste momento"},
+    {"title": "Take 2 - Nome da cena", "desc": "..."},
+    {"title": "Take 3 - Nome da cena", "desc": "..."}
+  ],
+  "cta": "chamada para acao final",
+  "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5", "#hashtag6", "#hashtag7", "#hashtag8"],
+  "dicasExtra": "dicas de edicao, musica, efeitos, transicoes que vao ajudar o video viralizar"
+}
+
+IMPORTANTE:
+- Minimo 4 takes detalhados, maximo 8
+- A narracao deve ser COMPLETA com tudo que a pessoa vai falar
+- Hashtags relevantes para o nicho de Orlando/viagem/brasileiro nos EUA
+- Foque em fazer o video VIRALIZAR
+- Minimo 8 hashtags`;
+
+  const userPrompt = `Crie um roteiro viral completo para o seguinte video: "${ideaText}"`;
+
+  fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.9,
+      max_tokens: 2000
+    })
+  })
+  .then(r => {
+    if(!r.ok) return r.json().then(e => { throw new Error(e.error?.message || 'Erro na API: ' + r.status); });
+    return r.json();
+  })
+  .then(data => {
+    const raw = data.choices[0].message.content.trim();
+    let parsed;
+    try {
+      // Try to extract JSON from possible markdown code blocks
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+    } catch(e) {
+      throw new Error('Erro ao processar resposta da IA. Tente novamente.');
+    }
+    renderAIScript(ideaText, parsed);
+  })
+  .catch(err => {
+    modal.innerHTML = `
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h2>❌ Erro</h2>
+      <p class="modal-sub">${ideaText}</p>
+      <div style="padding:20px;text-align:center">
+        <p style="color:var(--red);margin-bottom:16px">${err.message}</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button class="btn" onclick="closeModal();openScriptModal('${safeIdea}')">🔄 Tentar Novamente</button>
+          <button class="btn btn-ghost" onclick="openScriptModalFallback('${safeIdea}')">📝 Usar Roteiro Offline</button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function renderAIScript(ideaText, s){
+  const safeIdea = ideaText.replace(/'/g,"\\'");
+  const modal = document.getElementById('modalContent');
+  modal.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2>📝 Roteiro Completo <span style="font-size:12px;background:linear-gradient(135deg,var(--orange),var(--pink));padding:3px 10px;border-radius:8px;color:#fff;font-weight:600;margin-left:8px;-webkit-text-fill-color:#fff;background-clip:unset;-webkit-background-clip:unset">IA</span></h2>
+    <p class="modal-sub">${ideaText}</p>
+    <div class="info-grid">
+      <div class="info-box"><label>📌 Descricao</label><p>${s.descricao || '-'}</p></div>
+      <div class="info-box"><label>🎯 Objetivo</label><p>${s.objetivo || '-'}</p></div>
+      <div class="info-box"><label>🎭 Tom</label><p>${s.tom || '-'}</p></div>
+      <div class="info-box"><label>👥 Publico Alvo</label><p>${s.publicoAlvo || '-'}</p></div>
+      <div class="info-box"><label>⏰ Melhores Horarios</label><p>${s.horarios || '-'}</p></div>
+      <div class="info-box"><label>🎬 Modo de Gravacao</label><p>${s.gravacao || '-'}</p></div>
+    </div>
+    <div class="script-section"><h4>🪝 Hook</h4><div class="script-text">"${s.hook || '-'}"</div></div>
+    <div class="script-section"><h4>🎙️ Narracao Completa</h4><div class="script-text" style="white-space:pre-line">${s.narracao || '-'}</div></div>
+    <div class="script-section"><h4>🎬 Takes / Cenas</h4>
+      <div class="takes-timeline">
+        ${(s.takes||[]).map((tk,i)=>`<div class="take" data-num="${i+1}"><div class="take-title">${tk.title}</div><div class="take-desc">${tk.desc}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="script-section"><h4>📢 CTA</h4><div class="script-text">"${s.cta || '-'}"</div></div>
+    ${s.dicasExtra ? `<div class="script-section"><h4>💡 Dicas de Edicao</h4><div class="script-text">${s.dicasExtra}</div></div>` : ''}
+    <div class="script-section"><h4># Hashtags</h4>
+      <div class="hashtags">${(s.hashtags||[]).map(h=>`<span onclick="navigator.clipboard.writeText('${h}')">${h}</span>`).join('')}</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="addToBank('${safeIdea}')">🗃️ Salvar no Banco</button>
+      <button class="btn btn-ghost" onclick="addToCal('${safeIdea}')">📅 Agendar</button>
+      <button class="btn btn-ghost" onclick="copyScript()">📋 Copiar Tudo</button>
+      <button class="btn btn-ghost" onclick="closeModal();openScriptModal('${safeIdea}')">🔄 Gerar Novo</button>
+    </div>
+  `;
+}
+
+function openScriptModalFallback(ideaText){
+  const t = getTemplate(ideaText);
+  const hook = rand(t.hooks);
+  const narr = rand(t.narracoes);
+  const cta = rand(t.ctas);
+  const gravacao = rand(['Sozinha','Sozinha','Sozinha','+2 Pessoas','Takes de Imagens']);
+  const safeIdea = ideaText.replace(/'/g,"\\'");
+  const modal = document.getElementById('modalContent');
+  modal.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2>📝 Roteiro (Offline)</h2>
+    <p class="modal-sub">${ideaText}</p>
+    <div class="info-grid">
+      <div class="info-box"><label>📌 Descricao</label><p>${t.desc}</p></div>
+      <div class="info-box"><label>🎯 Objetivo</label><p>${t.objetivo}</p></div>
+      <div class="info-box"><label>🎭 Tom</label><p>${t.tom}</p></div>
+      <div class="info-box"><label>👥 Publico Alvo</label><p>${t.publicoAlvo}</p></div>
+      <div class="info-box"><label>⏰ Melhores Horarios</label><p>${t.horarios}</p></div>
+      <div class="info-box"><label>🎬 Modo de Gravacao</label><p>${gravacao}</p></div>
+    </div>
+    <div class="script-section"><h4>🪝 Hook</h4><div class="script-text">"${hook}"</div></div>
+    <div class="script-section"><h4>🎙️ Narracao</h4><div class="script-text">"${narr}"</div></div>
+    <div class="script-section"><h4>🎬 Takes / Cenas</h4>
+      <div class="takes-timeline">
+        ${t.takes.map((tk,i)=>`<div class="take" data-num="${i+1}"><div class="take-title">${tk.title}</div><div class="take-desc">${tk.desc}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="script-section"><h4>📢 CTA</h4><div class="script-text">"${cta}"</div></div>
+    <div class="script-section"><h4># Hashtags</h4>
+      <div class="hashtags">${t.hashtags.map(h=>`<span onclick="navigator.clipboard.writeText('${h}')">${h}</span>`).join('')}</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="addToBank('${safeIdea}')">🗃️ Salvar no Banco</button>
+      <button class="btn btn-ghost" onclick="addToCal('${safeIdea}')">📅 Agendar</button>
+      <button class="btn btn-ghost" onclick="copyScript()">📋 Copiar Tudo</button>
+      <button class="btn btn-ghost" onclick="closeModal();openScriptModalFallback('${safeIdea}')">🔄 Gerar Novo</button>
+    </div>
+  `;
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal(){document.getElementById('modalBg').classList.remove('open')}
+function addToBank(text){
+  if(!savedIdeas.find(i=>i.text===text)){
+    savedIdeas.push({text,status:'pendente',date:new Date().toLocaleDateString('pt-BR')});
+    saveBank();
+    alert('✅ Ideia salva no Banco!');
+  } else {
+    alert('Essa ideia ja esta no banco!');
+  }
+}
+function addToCal(text){
+  const dateStr = prompt('Qual data? (ex: 2026-03-15)');
+  if(dateStr){
+    if(!calendarEvents[dateStr]) calendarEvents[dateStr] = [];
+    calendarEvents[dateStr].push(text);
+    saveCal();
+    alert('✅ Agendado para '+dateStr+'!');
+  }
+}
+function copyScript(){
+  const modal = document.getElementById('modalContent');
+  const text = modal.innerText;
+  navigator.clipboard.writeText(text).then(()=>alert('📋 Copiado!')).catch(()=>alert('Erro ao copiar'));
+}
+
+// ============ BUILD NAV ============
+function buildNav(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = SECTIONS.map(s=>`<button class="nav-btn${s.id===currentSection?' active':''}" onclick="switchSection('${s.id}')"><span>${s.icon}</span><span class="nav-label">${s.label}</span></button>`).join('');
+}
+function switchSection(id){
+  currentSection = id;
+  buildNav();
+  renderSection();
+}
+
+// ============ RENDER SECTIONS ============
+function renderSection(){
+  const main = document.getElementById('main');
+  switch(currentSection){
+    case 'ideas': renderIdeas(main); break;
+    case 'hooks': renderHooks(main); break;
+    case 'viral': renderViral(main); break;
+    case 'travel': renderTravel(main); break;
+    case 'brain': renderBrain(main); break;
+    case 'radar': renderRadar(main); break;
+    case 'calendar': renderCalendar(main); break;
+    case 'bank': renderBank(main); break;
+    case 'upload': renderUpload(main); break;
+    case 'settings': renderSettings(main); break;
+  }
+}
+
+// ---- IDEA MACHINE ----
+function renderIdeas(el){
+  const cats = Object.keys(ALL_IDEAS);
+  const allFlat = [];
+  cats.forEach(c=>ALL_IDEAS[c].forEach(idea=>allFlat.push({...idea,cat:c})));
+  const shuffled = shuffle(allFlat).slice(0,20);
+  el.innerHTML = `
+    <div class="header"><h1>💡 Idea Machine</h1><p>📦 ${allFlat.length} ideias no banco — mostrando 20 por vez. Clique para roteiro completo ou salve no banco.</p></div>
+    <input class="search-box" id="ideasSearch" placeholder="🔍 Buscar ideias... (ex: walmart, disney, comida, pov, viral)" oninput="filterIdeas()">
+    <div class="pill-row" id="ideasPills">
+      <button class="pill active" onclick="filterIdeasCat('todos')">Todos (${allFlat.length})</button>
+      ${cats.map(c=>`<button class="pill" onclick="filterIdeasCat('${c}')">${c} (${ALL_IDEAS[c].length})</button>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button class="btn" onclick="renderIdeas(document.getElementById('main'))">🔄 Gerar Novas Ideias</button>
+      <button class="btn btn-ghost" onclick="showAllIdeas()">📋 Ver Todas (${allFlat.length})</button>
+    </div>
+    <div class="ideas-grid" id="ideasGrid"></div>
+  `;
+  window._ideasAll = allFlat;
+  window._ideasShown = shuffled;
+  renderIdeasGrid(shuffled);
+}
+function renderIdeasGrid(ideas){
+  document.getElementById('ideasGrid').innerHTML = ideas.map(i=>`
+    <div class="idea-card" onclick="openScriptModal('${i.title.replace(/'/g,"\\'")}')">
+      <span class="idea-click">Clique para roteiro →</span>
+      <div class="idea-cat">${i.cat}</div>
+      <div class="idea-title">${i.title}</div>
+      <div class="idea-tags">${i.tags.slice(0,4).map(t=>`<span>${t}</span>`).join('')}</div>
+      <button class="idea-save" onclick="event.stopPropagation();saveIdeaToBank('${i.title.replace(/'/g,"\\'")}')">💾 Salvar</button>
+    </div>
+  `).join('');
+}
+function saveIdeaToBank(title){
+  if(savedIdeas.find(i=>i.text===title)){
+    const btn=event.target;btn.textContent='✅ Já salva!';btn.style.background='var(--green)';btn.style.color='#fff';btn.style.borderColor='var(--green)';
+    setTimeout(()=>{btn.textContent='💾 Salvar';btn.style.background='';btn.style.color='';btn.style.borderColor='';},1500);
+    return;
+  }
+  savedIdeas.push({text:title,status:'pendente',date:new Date().toLocaleDateString('pt-BR')});
+  saveBank();
+  const btn=event.target;btn.textContent='✅ Salva!';btn.style.background='var(--green)';btn.style.color='#fff';btn.style.borderColor='var(--green)';
+  setTimeout(()=>{btn.textContent='💾 Salvar';btn.style.background='';btn.style.color='';btn.style.borderColor='';},1500);
+}
+function filterIdeas(){
+  const q = normalize(document.getElementById('ideasSearch').value);
+  if(!q){renderIdeasGrid(window._ideasShown);return;}
+  const results = window._ideasAll.filter(i=>{
+    const score = i.tags.some(t=>normalize(t)===q)?10 : i.tags.some(t=>normalize(t).includes(q))?5 : normalize(i.title).includes(q)?3 : 0;
+    i._score = score;
+    return score > 0;
+  }).sort((a,b)=>b._score - a._score);
+  renderIdeasGrid(results);
+}
+function filterIdeasCat(cat){
+  document.querySelectorAll('#ideasPills .pill').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+  if(cat==='todos'){renderIdeasGrid(window._ideasShown);return;}
+  const filtered = window._ideasAll.filter(i=>i.cat===cat);
+  renderIdeasGrid(shuffle(filtered));
+}
+function showAllIdeas(){
+  renderIdeasGrid(shuffle(window._ideasAll));
+}
+
+// ---- HOOK BANK ----
+function renderHooks(el){
+  const cats = Object.keys(ALL_HOOKS);
+  el.innerHTML = `
+    <div class="header"><h1>🪝 Hook Bank</h1><p>Banco de hooks virais por categoria. Clique em qualquer hook para gerar o roteiro.</p></div>
+    <input class="search-box" id="hookSearch" placeholder="🔍 Buscar hooks..." oninput="filterHooks()">
+    <div class="pill-row" id="hookPills">
+      <button class="pill active" onclick="filterHooksCat('todos')">Todos</button>
+      ${cats.map(c=>`<button class="pill" onclick="filterHooksCat('${c}')">${c}</button>`).join('')}
+    </div>
+    <div class="hooks-grid" id="hooksGrid"></div>
+  `;
+  window._hooksCat = 'todos';
+  renderHooksGrid(cats);
+}
+function renderHooksGrid(cats){
+  const grid = document.getElementById('hooksGrid');
+  let html = '';
+  cats.forEach(cat=>{
+    ALL_HOOKS[cat].forEach(hook=>{
+      html += `<div class="hook-card" onclick="openScriptModal('${hook.replace(/'/g,"\\'")}')">
+        <div class="hook-emoji">🪝</div>
+        <div class="hook-text">"${hook}"</div>
+        <div class="hook-cat">${cat}</div>
+      </div>`;
+    });
+  });
+  grid.innerHTML = html;
+}
+function filterHooks(){
+  const q = normalize(document.getElementById('hookSearch').value);
+  const grid = document.getElementById('hooksGrid');
+  if(!q){renderHooksGrid(Object.keys(ALL_HOOKS));return;}
+  let html = '';
+  Object.keys(ALL_HOOKS).forEach(cat=>{
+    ALL_HOOKS[cat].forEach(hook=>{
+      if(normalize(hook).includes(q) || normalize(cat).includes(q)){
+        html += `<div class="hook-card" onclick="openScriptModal('${hook.replace(/'/g,"\\'")}')">
+          <div class="hook-emoji">🪝</div>
+          <div class="hook-text">"${hook}"</div>
+          <div class="hook-cat">${cat}</div>
+        </div>`;
+      }
+    });
+  });
+  grid.innerHTML = html || '<p style="color:var(--muted);padding:20px">Nenhum hook encontrado</p>';
+}
+function filterHooksCat(cat){
+  document.querySelectorAll('#hookPills .pill').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+  if(cat==='todos'){renderHooksGrid(Object.keys(ALL_HOOKS));return;}
+  renderHooksGrid([cat]);
+}
+
+// ---- VIRAL HUNTER ----
+function viralSearchUrl(v){
+  const keywords = v.tags.slice(0,3).join(' ') + ' orlando';
+  return 'https://www.tiktok.com/search?q=' + encodeURIComponent(keywords);
+}
+function viralCardHtml(v, isGravar){
+  const url = viralSearchUrl(v);
+  const safeTitle = v.title.replace(/'/g,"\\'");
+  return `<div class="viral-item${isGravar?' gravar-hoje':''}" style="display:flex;flex-direction:column;gap:8px">
+    <a href="${url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit" title="Ver videos reais no TikTok">
+      <div class="vi-title">${isGravar?'📹 ':''}${v.title}</div>
+      <div class="vi-stats">${isGravar?'Inspirado em: ':''}${v.views} views · ${v.likes} likes${isGravar?'':' · '+v.cat}</div>
+    </a>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <a href="${url}" target="_blank" rel="noopener" style="text-decoration:none;padding:4px 10px;border-radius:8px;background:rgba(0,0,0,.3);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(255,255,255,.1)">🎵 Ver no TikTok</a>
+      <a href="https://www.instagram.com/explore/tags/${encodeURIComponent(v.tags[0])}/" target="_blank" rel="noopener" style="text-decoration:none;padding:4px 10px;border-radius:8px;background:rgba(236,72,153,.1);color:var(--pink);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(236,72,153,.2)">📸 Instagram</a>
+      <button onclick="openScriptModal('${safeTitle}')" style="padding:4px 10px;border-radius:8px;background:rgba(249,115,22,.1);color:var(--orange);font-size:11px;font-weight:700;border:1px solid rgba(249,115,22,.2);cursor:pointer;display:inline-flex;align-items:center;gap:4px">📝 Roteiro</button>
+      ${isGravar?'<span class="vi-badge">GRAVAR HOJE</span>':'<span class="vi-badge">'+v.cat+'</span>'}
+    </div>
+  </div>`;
+}
+function renderViral(el){
+  const gravarHoje = shuffle(VIRAL_DATA).slice(0,3);
+  const NICHE_SEARCHES = [
+    {label:'🛒 Compras Orlando', q:'compras orlando brasileiro', ig:'comprasorlando'},
+    {label:'🏰 Disney Orlando BR', q:'disney orlando brasileiro dicas', ig:'disneyorlando'},
+    {label:'🎢 Universal Orlando', q:'universal orlando brasileiro', ig:'universalorlando'},
+    {label:'🍔 Comida nos EUA', q:'comida americana brasileiro', ig:'comidanoseua'},
+    {label:'💰 Precos EUA vs Brasil', q:'preco eua vs brasil orlando', ig:'precosnoseua'},
+    {label:'🎒 Dicas de Viagem', q:'dicas viagem orlando brasileiro', ig:'dicasorlando'},
+    {label:'🛍️ Outlet Orlando', q:'outlet orlando haul compras', ig:'outletorlando'},
+    {label:'🎵 Orlando viral', q:'orlando viral brasileiro', ig:'orlandoflorida'},
+    {label:'✈️ Mala EUA', q:'mala viagem estados unidos dicas', ig:'maladeeua'},
+    {label:'🆕 Epic Universe', q:'epic universe orlando 2025 2026', ig:'epicuniverse'},
+    {label:'🍕 Fast Food EUA', q:'fast food americano brasileiro', ig:'fastfoodamericano'},
+    {label:'🏠 Morar Orlando', q:'morar em orlando brasileiro vida', ig:'brasileirosemorlando'}
+  ];
+  el.innerHTML = `
+    <div class="header"><h1>🔥 Viral Hunter</h1><p>Veja o que esta REALMENTE bombando no TikTok e Instagram agora. Clique nos atalhos abaixo para buscar videos virais do nicho.</p></div>
+    <div class="card" style="border-color:var(--cyan);margin-bottom:16px">
+      <h3>🔎 Buscar Virais Agora no TikTok & Instagram</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Clique para ver os videos REAIS que estao bombando agora em cada tema:</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${NICHE_SEARCHES.map(s=>`
+          <div style="display:flex;gap:4px">
+            <a href="https://www.tiktok.com/search?q=${encodeURIComponent(s.q)}" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 12px;border-radius:10px;background:rgba(0,0,0,.4);color:#fff;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.1);display:inline-flex;align-items:center;gap:4px;transition:all .2s">${s.label}</a>
+            <a href="https://www.instagram.com/explore/tags/${s.ig}/" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 8px;border-radius:10px;background:rgba(236,72,153,.1);color:var(--pink);font-size:12px;font-weight:700;border:1px solid rgba(236,72,153,.2);display:inline-flex;align-items:center" title="Instagram #${s.ig}">📸</a>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <input class="search-box" id="viralSearch" placeholder="🔍 Buscar virais... (ex: walmart, disney)" oninput="filterViral()">
+    <div class="card" style="border-color:var(--green)">
+      <h3>🎬 Gravar Hoje</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Baseado nos virais do momento, grave esses videos hoje:</p>
+      <div class="viral-grid" id="gravarGrid">
+        ${gravarHoje.map(v=>viralCardHtml(v,true)).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <h3>📊 Virais do Momento</h3>
+      <div class="viral-grid" id="viralGrid">
+        ${VIRAL_DATA.map(v=>viralCardHtml(v,false)).join('')}
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:16px"><button class="btn" onclick="renderViral(document.getElementById('main'))">🔄 Atualizar Sugestoes</button></div>
+  `;
+}
+function filterViral(){
+  const q = normalize(document.getElementById('viralSearch').value);
+  const grid = document.getElementById('viralGrid');
+  if(!q){
+    grid.innerHTML = VIRAL_DATA.map(v=>viralCardHtml(v,false)).join('');
+    return;
+  }
+  const results = VIRAL_DATA.filter(v=>normalize(v.title).includes(q)||v.tags.some(t=>normalize(t).includes(q))||normalize(v.cat).includes(q));
+  grid.innerHTML = results.map(v=>viralCardHtml(v,false)).join('') || '<p style="color:var(--muted);padding:20px">Nenhum viral encontrado</p>';
+}
+
+// ---- VIDEO PLANNER DE VIAGEM ----
+function renderTravel(el){
+  el.innerHTML = `
+    <div class="header"><h1>✈️ Planner de Viagem</h1><p>Informe destino, dias e selecione seus interesses para gerar um plano de gravacao.</p></div>
+    <div class="card">
+      <div class="travel-form">
+        <div><label>Destino</label><select id="travelDest"><option value="orlando">Orlando</option><option value="miami">Miami</option></select></div>
+        <div><label>Dias</label><input type="number" id="travelDays" value="3" min="1" max="14" style="width:80px"></div>
+      </div>
+      <div style="margin-top:14px"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:8px">Interesses (selecione quantos quiser)</label>
+        <div class="pill-row" id="travelInterests">
+          <button class="pill active" data-cat="compras" onclick="toggleTravelPill(this)">🛍️ Compras</button>
+          <button class="pill" data-cat="parques" onclick="toggleTravelPill(this)">🎢 Parques</button>
+          <button class="pill" data-cat="comida" onclick="toggleTravelPill(this)">🍔 Comida</button>
+          <button class="pill" data-cat="experiencias" onclick="toggleTravelPill(this)">✨ Experiencias</button>
+        </div>
+      </div>
+      <div style="margin-top:14px"><button class="btn" onclick="generateTravel()">🗺️ Gerar Plano</button></div>
+    </div>
+    <div id="travelResult"></div>
+  `;
+}
+function toggleTravelPill(btn){btn.classList.toggle('active')}
+function generateTravel(){
+  const dest = document.getElementById('travelDest').value;
+  const days = parseInt(document.getElementById('travelDays').value) || 3;
+  const db = TRAVEL_DB[dest];
+  if(!db){document.getElementById('travelResult').innerHTML='<p style="color:var(--muted)">Destino nao disponivel ainda</p>';return;}
+
+  const selected = [...document.querySelectorAll('#travelInterests .pill.active')].map(b=>b.dataset.cat);
+  if(selected.length===0){alert('Selecione pelo menos um interesse!');return;}
+
+  let pool = [];
+  selected.forEach(cat=>{pool = pool.concat(db[cat]||[]);});
+  pool = shuffle(pool);
+
+  let html = '';
+  for(let d=1;d<=days;d++){
+    const dayItems = pool.splice(0,Math.min(5,Math.ceil(pool.length/(days-d+1))));
+    if(dayItems.length===0 && pool.length>0){dayItems.push(pool.shift());}
+    dayItems.sort((a,b)=>parseInt(a.time)-parseInt(b.time));
+    html += `<div class="day-block"><h4>📅 Dia ${d}</h4>`;
+    dayItems.forEach(item=>{
+      const videoTitle = `Video em ${item.name}: ${item.type}`;
+      html += `<div class="day-video" onclick="openScriptModal('${videoTitle.replace(/'/g,"\\'")}')">
+        <div class="dv-time">${item.time}</div>
+        <div><div class="dv-title">📹 ${item.name}</div><div class="dv-type">${item.type} · ~${item.dur}h</div></div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  document.getElementById('travelResult').innerHTML = html || '<p style="color:var(--muted)">Nao ha itens suficientes para esse destino com os interesses selecionados.</p>';
+}
+
+// ---- CONTENT RADAR (Videos Virais do Nicho) ----
+const RADAR_HASHTAGS = ['#orlando','#comprasnoseua','#brasileirosnoexterior','#walmartfinds','#targetfinds','#disneyworld','#dicasdeviagem','#vidanoseua','#outletorlando','#floridaLife'];
+const RADAR_POOL = [
+  {title:'POV: primeira vez no Walmart americano',views:'5.1M',likes:'420K',cat:'Compras',plat:'TikTok',hook:'POV',tempo:'15s',perfil:'@comprasdedolar'},
+  {title:'Tudo por $1 no Dollar Tree e olha a qualidade',views:'6.3M',likes:'500K',cat:'Compras',plat:'TikTok',hook:'Preco choque',tempo:'22s',perfil:'@dollardicas'},
+  {title:'Haul GIGANTE de outlet em Orlando',views:'4.2M',likes:'350K',cat:'Compras',plat:'Instagram',hook:'Haul',tempo:'45s',perfil:'@brasileiraemorlando'},
+  {title:'Secao escondida da Target com 70% off',views:'2.4M',likes:'180K',cat:'Compras',plat:'TikTok',hook:'Segredo',tempo:'18s',perfil:'@targetlovers'},
+  {title:'Magic Kingdom em 60 segundos',views:'3.8M',likes:'290K',cat:'Disney',plat:'TikTok',hook:'Speed run',tempo:'60s',perfil:'@orlandocomamor'},
+  {title:'O truque que corta 2h de fila na Disney',views:'2.9M',likes:'230K',cat:'Disney',plat:'Instagram',hook:'Dica insider',tempo:'30s',perfil:'@disneydicasbr'},
+  {title:'Comida mais cara do EPCOT: vale R$200?',views:'1.8M',likes:'145K',cat:'Comida',plat:'TikTok',hook:'Preco reacao',tempo:'35s',perfil:'@floridafoodtour'},
+  {title:'Cafe da manha americano por $5 IMPRESSIONANTE',views:'2.0M',likes:'165K',cat:'Comida',plat:'Instagram',hook:'Preco choque',tempo:'28s',perfil:'@cafedamanhaeua'},
+  {title:'Precos do supermercado americano chocam brasileiros',views:'1.9M',likes:'150K',cat:'Preco',plat:'TikTok',hook:'Reacao',tempo:'40s',perfil:'@vidanaflorida'},
+  {title:'iPhone no EUA custa ISSO vs Brasil',views:'3.5M',likes:'280K',cat:'Preco',plat:'TikTok',hook:'Comparacao',tempo:'20s',perfil:'@comprasdedolar'},
+  {title:'Get Ready: dia de outlet em Orlando',views:'2.7M',likes:'210K',cat:'Compras',plat:'Instagram',hook:'GRWM',tempo:'50s',perfil:'@brasileiraemorlando'},
+  {title:'A montanha-russa mais INSANA de Orlando',views:'3.1M',likes:'260K',cat:'Universal',plat:'TikTok',hook:'Adrenalina',tempo:'25s',perfil:'@parkbr'},
+  {title:'Harry Potter Butterbeer: vale R$45?',views:'1.8M',likes:'140K',cat:'Universal',plat:'TikTok',hook:'Vale a pena?',tempo:'30s',perfil:'@harrypotterbr'},
+  {title:'Tour pela casa Airbnb perto da Disney',views:'1.2M',likes:'95K',cat:'Viagem',plat:'Instagram',hook:'Tour',tempo:'55s',perfil:'@orlandohouse'},
+  {title:'Gasolina nos EUA custa QUANTO?!',views:'2.3M',likes:'190K',cat:'Preco',plat:'TikTok',hook:'Choque',tempo:'15s',perfil:'@vidanaflorida'},
+  {title:'Marshalls: roupas de marca por $10',views:'1.6M',likes:'130K',cat:'Compras',plat:'TikTok',hook:'Achados',tempo:'20s',perfil:'@achadoseua'},
+  {title:'EPCOT World Showcase food tour completo',views:'1.5M',likes:'120K',cat:'Comida',plat:'Instagram',hook:'Food tour',tempo:'60s',perfil:'@floridafoodtour'},
+  {title:'Churrascaria Texas de Brazil: brasileiros aprovam?',views:'1.3M',likes:'105K',cat:'Comida',plat:'TikTok',hook:'Review',tempo:'40s',perfil:'@comidabr'},
+  {title:'3 dias em Orlando: roteiro COMPLETO',views:'2.1M',likes:'175K',cat:'Viagem',plat:'Instagram',hook:'Roteiro',tempo:'60s',perfil:'@orlandoguia'},
+  {title:'O erro que TODO brasileiro comete na Disney',views:'2.6M',likes:'215K',cat:'Disney',plat:'TikTok',hook:'Erro comum',tempo:'22s',perfil:'@disneydicasbr'}
+];
+
+function getRadarVideos(){
+  const lastUpdate = localStorage.getItem('olai_radar_time');
+  const cached = localStorage.getItem('olai_radar_videos');
+  const now = Date.now();
+  const FIVE_HOURS = 5*60*60*1000;
+  if(cached && lastUpdate && (now - parseInt(lastUpdate)) < FIVE_HOURS){
+    return JSON.parse(cached);
+  }
+  // Shuffle and pick 12 "trending" videos to simulate refresh
+  const videos = shuffle([...RADAR_POOL]).slice(0,12).map((v,i)=>({...v,rank:i+1,trending:i<3}));
+  localStorage.setItem('olai_radar_videos',JSON.stringify(videos));
+  localStorage.setItem('olai_radar_time',now.toString());
+  return videos;
+}
+
+function radarSearchUrl(v){
+  const q = v.title.replace(/[^a-zA-Z0-9\s]/g,'').split(' ').slice(0,5).join(' ') + ' orlando';
+  if(v.plat==='TikTok') return 'https://www.tiktok.com/search?q='+encodeURIComponent(q);
+  return 'https://www.instagram.com/explore/tags/'+encodeURIComponent(v.cat.toLowerCase().replace(/\s/g,'')+'orlando')+'/';
+}
+function radarCardHtml(v, isTop){
+  const url = radarSearchUrl(v);
+  const safeTitle = v.title.replace(/'/g,"\\'");
+  const tiktokUrl = 'https://www.tiktok.com/search?q='+encodeURIComponent(v.title.replace(/[^a-zA-Z0-9\s]/g,'').split(' ').slice(0,5).join(' ')+' orlando');
+  const igTag = v.cat.toLowerCase().replace(/[^a-z]/g,'')+'orlando';
+  const igUrl = 'https://www.instagram.com/explore/tags/'+igTag+'/';
+  return `<div class="viral-item${isTop?' gravar-hoje':''}" style="display:flex;flex-direction:column;gap:8px">
+    <a href="${url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit" title="Ver videos reais">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${isTop?'6':'4'}px">
+        ${isTop?'<span style="font-size:20px">🏆 #'+v.rank+'</span>':'<span class="vi-badge">'+v.cat+'</span>'}
+        <span class="${isTop?'vi-badge':''}" style="${isTop?'background:rgba(16,185,129,.15);color:var(--green)':'font-size:11px;color:var(--muted)'}">${v.plat} · ${v.tempo}</span>
+      </div>
+      <div class="vi-title">${v.title}</div>
+      <div class="vi-stats">${v.views} views · ${v.likes} likes · ${v.perfil}</div>
+      <div style="margin-top:4px;font-size:11px;color:var(--orange)">🪝 ${isTop?'Hook: ':''}${v.hook}${isTop?' · ⏱️ '+v.tempo:''}</div>
+    </a>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <a href="${tiktokUrl}" target="_blank" rel="noopener" style="text-decoration:none;padding:4px 10px;border-radius:8px;background:rgba(0,0,0,.3);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(255,255,255,.1)">🎵 TikTok</a>
+      <a href="${igUrl}" target="_blank" rel="noopener" style="text-decoration:none;padding:4px 10px;border-radius:8px;background:rgba(236,72,153,.1);color:var(--pink);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(236,72,153,.2)">📸 Insta</a>
+      <button onclick="openScriptModal('${safeTitle}')" style="padding:4px 10px;border-radius:8px;background:rgba(249,115,22,.1);color:var(--orange);font-size:11px;font-weight:700;border:1px solid rgba(249,115,22,.2);cursor:pointer;display:inline-flex;align-items:center;gap:4px">📝 Roteiro</button>
+    </div>
+  </div>`;
+}
+function renderRadar(el){
+  const videos = getRadarVideos();
+  const lastTime = localStorage.getItem('olai_radar_time');
+  const nextUpdate = lastTime ? new Date(parseInt(lastTime)+5*60*60*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—';
+  const cats = [...new Set(videos.map(v=>v.cat))];
+
+  el.innerHTML = `
+    <div class="header"><h1>📡 Content Radar</h1><p>Radar de videos bombando. Clique nos atalhos para ver os virais REAIS agora, ou explore os cards abaixo.</p></div>
+    <div class="card" style="border-color:var(--cyan);margin-bottom:16px">
+      <h3>🔎 Ver Virais Reais Agora</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Atalhos diretos para buscar o que esta bombando agora no nicho:</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <a href="https://www.tiktok.com/search?q=${encodeURIComponent('compras orlando brasileiro')}" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 12px;border-radius:10px;background:rgba(0,0,0,.4);color:#fff;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.1)">🛒 Compras Orlando</a>
+        <a href="https://www.tiktok.com/search?q=${encodeURIComponent('disney orlando dicas brasileiro')}" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 12px;border-radius:10px;background:rgba(0,0,0,.4);color:#fff;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.1)">🏰 Disney BR</a>
+        <a href="https://www.tiktok.com/search?q=${encodeURIComponent('epic universe orlando 2025')}" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 12px;border-radius:10px;background:rgba(0,0,0,.4);color:#fff;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.1)">🆕 Epic Universe</a>
+        <a href="https://www.tiktok.com/search?q=${encodeURIComponent('outlet orlando haul')}" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 12px;border-radius:10px;background:rgba(0,0,0,.4);color:#fff;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.1)">🛍️ Outlets</a>
+        <a href="https://www.tiktok.com/search?q=${encodeURIComponent('comida americana brasileiro')}" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 12px;border-radius:10px;background:rgba(0,0,0,.4);color:#fff;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.1)">🍔 Comida EUA</a>
+        <a href="https://www.tiktok.com/search?q=${encodeURIComponent('preco eua vs brasil')}" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 12px;border-radius:10px;background:rgba(0,0,0,.4);color:#fff;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.1)">💰 Precos EUA</a>
+        <a href="https://www.instagram.com/explore/tags/brasileirosemorlando/" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 12px;border-radius:10px;background:rgba(236,72,153,.1);color:var(--pink);font-size:12px;font-weight:700;border:1px solid rgba(236,72,153,.2)">📸 #brasileirosemorlando</a>
+        <a href="https://www.instagram.com/explore/tags/orlandoflorida/" target="_blank" rel="noopener" style="text-decoration:none;padding:6px 12px;border-radius:10px;background:rgba(236,72,153,.1);color:var(--pink);font-size:12px;font-weight:700;border:1px solid rgba(236,72,153,.2)">📸 #orlandoflorida</a>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:12px;color:var(--muted)">⏰ Proxima atualizacao: <strong style="color:var(--orange)">${nextUpdate}</strong></div>
+      <button class="btn btn-sm" onclick="forceRadarRefresh()">🔄 Atualizar Agora</button>
+    </div>
+    <input class="search-box" id="radarSearch" placeholder="🔍 Buscar video viral..." oninput="filterRadar()">
+    <div class="pill-row" id="radarPills">
+      <button class="pill active" onclick="filterRadarCat('todos')">Todos</button>
+      ${cats.map(c=>`<button class="pill" onclick="filterRadarCat('${c}')">${c}</button>`).join('')}
+    </div>
+    <div class="card" style="border-color:var(--green);margin-bottom:16px">
+      <h3>🔥 Top 3 Bombando Agora</h3>
+      <div class="viral-grid" id="radarTop3">
+        ${videos.filter(v=>v.trending).map(v=>radarCardHtml(v,true)).join('')}
+      </div>
+    </div>
+    <div class="card"><h3>📊 Todos os Virais Detectados</h3>
+      <div class="viral-grid" id="radarAll">
+        ${videos.map(v=>radarCardHtml(v,false)).join('')}
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;border-color:var(--orange)">
+      <h3>💡 Hashtags em Alta</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${RADAR_HASHTAGS.map(h=>`<span style="padding:6px 14px;border-radius:20px;background:rgba(249,115,22,.1);color:var(--orange);font-size:13px;font-weight:600;cursor:pointer" onclick="navigator.clipboard.writeText('${h}').then(()=>alert('Copiado: ${h}'))">${h}</span>`).join('')}</div>
+    </div>
+  `;
+}
+function forceRadarRefresh(){
+  localStorage.removeItem('olai_radar_time');
+  localStorage.removeItem('olai_radar_videos');
+  renderRadar(document.getElementById('main'));
+}
+function filterRadar(){
+  const q = normalize(document.getElementById('radarSearch').value);
+  const videos = getRadarVideos();
+  const grid = document.getElementById('radarAll');
+  const filtered = q ? videos.filter(v=>normalize(v.title).includes(q)||normalize(v.cat).includes(q)||normalize(v.perfil).includes(q)||normalize(v.hook).includes(q)) : videos;
+  grid.innerHTML = filtered.map(v=>radarCardHtml(v,false)).join('') || '<p style="color:var(--muted);padding:20px">Nenhum viral encontrado</p>';
+}
+function filterRadarCat(cat){
+  document.querySelectorAll('#radarPills .pill').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+  if(cat==='todos'){filterRadar();return;}
+  const videos = getRadarVideos();
+  const grid = document.getElementById('radarAll');
+  const filtered = videos.filter(v=>v.cat===cat);
+  grid.innerHTML = filtered.map(v=>radarCardHtml(v,false)).join('');
+}
+// Auto-refresh radar every 5 hours
+setInterval(()=>{if(currentSection==='radar')renderRadar(document.getElementById('main'))},5*60*60*1000);
+
+// ---- CONTENT BRAIN ----
+function renderBrain(el){
+  el.innerHTML = `
+    <div class="header"><h1>🧠 Content Brain</h1><p>Analise de performance e padroes do seu conteudo.</p></div>
+    <div class="brain-grid">
+      <div class="brain-card"><h4>📊 Formatos que Viralizam</h4><canvas id="chartFormatos" height="200"></canvas></div>
+      <div class="brain-card"><h4>📈 Evolucao de Views</h4><canvas id="chartViews" height="200"></canvas></div>
+      <div class="brain-card"><h4>⏱️ Curva de Retencao</h4><canvas id="chartRetencao" height="200"></canvas></div>
+      <div class="brain-card"><h4>🏆 Melhores Temas</h4>
+        ${PERF_DATA.melhoresTemas.map(t=>`
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+            <span>${t.tema}</span><span style="color:var(--orange);font-weight:700">${t.media} · ${t.engajamento}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <h3>💡 Insights da IA</h3>
+      ${PERF_DATA.insights.map(i=>`<div class="insight">${i}</div>`).join('')}
+    </div>
+  `;
+  setTimeout(initBrainCharts,100);
+}
+function initBrainCharts(){
+  // Formatos doughnut
+  new Chart(document.getElementById('chartFormatos'),{
+    type:'doughnut',
+    data:{labels:PERF_DATA.formatos.labels,datasets:[{data:PERF_DATA.formatos.data,backgroundColor:PERF_DATA.formatos.colors,borderWidth:0}]},
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#888',font:{size:11}}}}}
+  });
+  // Views line
+  new Chart(document.getElementById('chartViews'),{
+    type:'line',
+    data:{labels:PERF_DATA.views.labels,datasets:[{label:'Views',data:PERF_DATA.views.data,borderColor:'#F97316',backgroundColor:'rgba(249,115,22,.1)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#F97316'}]},
+    options:{responsive:true,scales:{x:{ticks:{color:'#888'}},y:{ticks:{color:'#888'},grid:{color:'#1A1A1A'}}},plugins:{legend:{display:false}}}
+  });
+  // Retencao area
+  new Chart(document.getElementById('chartRetencao'),{
+    type:'line',
+    data:{labels:PERF_DATA.retencao.labels,datasets:[{label:'Retencao %',data:PERF_DATA.retencao.data,borderColor:'#EC4899',backgroundColor:'rgba(236,72,153,.1)',fill:true,tension:.3,pointRadius:3,pointBackgroundColor:'#EC4899'}]},
+    options:{responsive:true,scales:{x:{ticks:{color:'#888'}},y:{ticks:{color:'#888',callback:v=>v+'%'},grid:{color:'#1A1A1A'},max:100}},plugins:{legend:{display:false}}}
+  });
+}
+
+// ---- CALENDARIO ----
+function renderCalendar(el){
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const monthNames = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sab'];
+  const firstDay = new Date(year,month,1).getDay();
+  const daysInMonth = new Date(year,month+1,0).getDate();
+  const today = now.getDate();
+
+  let calHtml = dayNames.map(d=>`<div class="cal-header">${d}</div>`).join('');
+  for(let i=0;i<firstDay;i++) calHtml += '<div></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const events = calendarEvents[dateStr] || [];
+    const isToday = d===today ? ' today' : '';
+    calHtml += `<div class="cal-day${isToday}" onclick="showCalDay('${dateStr}')">
+      <div class="cal-num">${d}</div>
+      ${events.slice(0,2).map(()=>'<span class="cal-dot" style="background:var(--orange)"></span>').join('')}
+      ${events.length>2?`<span style="font-size:10px;color:var(--muted)">+${events.length-2}</span>`:''}
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="header"><h1>📅 Calendario</h1><p>${monthNames[month]} ${year} — Clique em um dia para ver/adicionar conteudo.</p></div>
+    <div class="cal-grid">${calHtml}</div>
+    <div id="calDayDetail"></div>
+  `;
+}
+function showCalDay(dateStr){
+  const events = calendarEvents[dateStr] || [];
+  const detail = document.getElementById('calDayDetail');
+  detail.innerHTML = `
+    <div class="card">
+      <h3>📅 ${dateStr}</h3>
+      ${events.length ? events.map((e,i)=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="flex:1;font-size:13px;cursor:pointer" onclick="openScriptModal('${e.replace(/'/g,"\\'")}')">📹 ${e}</span>
+          <button class="btn-sm btn-ghost" style="border:none;color:var(--red);cursor:pointer;background:transparent;font-size:16px" onclick="removeCalEvent('${dateStr}',${i})">×</button>
+        </div>
+      `).join('') : '<p style="color:var(--muted);font-size:13px">Nenhum conteudo agendado</p>'}
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <input id="calNewEvent" class="search-box" placeholder="Adicionar video..." style="margin:0;flex:1">
+        <button class="btn btn-sm" onclick="addCalEvent('${dateStr}')">+ Adicionar</button>
+      </div>
+    </div>
+  `;
+}
+function addCalEvent(dateStr){
+  const input = document.getElementById('calNewEvent');
+  if(input.value.trim()){
+    if(!calendarEvents[dateStr]) calendarEvents[dateStr]=[];
+    calendarEvents[dateStr].push(input.value.trim());
+    saveCal();
+    renderCalendar(document.getElementById('main'));
+    setTimeout(()=>showCalDay(dateStr),50);
+  }
+}
+function removeCalEvent(dateStr,idx){
+  calendarEvents[dateStr].splice(idx,1);
+  if(calendarEvents[dateStr].length===0) delete calendarEvents[dateStr];
+  saveCal();
+  showCalDay(dateStr);
+}
+
+// ---- BANCO DE IDEIAS ----
+function renderBank(el){
+  el.innerHTML = `
+    <div class="header"><h1>🗃️ Banco de Ideias</h1><p>Todas as suas ideias salvas. Clique para gerar roteiro.</p></div>
+    <input class="search-box" id="bankSearch" placeholder="🔍 Buscar no banco..." oninput="filterBank()">
+    <div class="pill-row">
+      <button class="pill active" onclick="filterBankStatus('todos')">Todos (${savedIdeas.length})</button>
+      <button class="pill" onclick="filterBankStatus('pendente')">⏳ Pendente</button>
+      <button class="pill" onclick="filterBankStatus('para_edicao')">✂️ Para Edição</button>
+      <button class="pill" onclick="filterBankStatus('editado')">✅ Editado</button>
+      <button class="pill" onclick="filterBankStatus('gravado')">🎬 Gravado</button>
+      <button class="pill" onclick="filterBankStatus('publicado')">📱 Publicado</button>
+    </div>
+    <div id="bankList"></div>
+  `;
+  window._bankFilter = 'todos';
+  renderBankList(savedIdeas);
+}
+function renderBankList(items){
+  document.getElementById('bankList').innerHTML = items.length ? items.map((item,i)=>`
+    <div class="bank-item">
+      <span class="bi-text" style="cursor:pointer" onclick="openScriptModal('${item.text.replace(/'/g,"\\'")}')">📝 ${item.text}</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select onchange="updateBankStatus(${savedIdeas.indexOf(item)},this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:11px">
+          <option value="pendente" ${item.status==='pendente'?'selected':''}>⏳ Pendente</option>
+          <option value="para_edicao" ${item.status==='para_edicao'?'selected':''}>✂️ Para Edição</option>
+          <option value="editado" ${item.status==='editado'?'selected':''}>✅ Editado</option>
+          <option value="gravado" ${item.status==='gravado'?'selected':''}>🎬 Gravado</option>
+          <option value="publicado" ${item.status==='publicado'?'selected':''}>📱 Publicado</option>
+        </select>
+        <span class="bi-status ${item.status}">${{pendente:'Pendente',para_edicao:'Para Edição',editado:'Editado',gravado:'Gravado',publicado:'Publicado'}[item.status]||item.status}</span>
+        <button onclick="removeBankItem(${savedIdeas.indexOf(item)})" style="background:transparent;border:none;color:var(--red);cursor:pointer;font-size:16px">×</button>
+      </div>
+    </div>
+  `).join('') : '<p style="color:var(--muted);padding:20px;text-align:center">Nenhuma ideia salva ainda. Use a Idea Machine ou Hook Bank para salvar ideias!</p>';
+}
+function filterBank(){
+  const q = normalize(document.getElementById('bankSearch').value);
+  let items = window._bankFilter==='todos' ? savedIdeas : savedIdeas.filter(i=>i.status===window._bankFilter);
+  if(q) items = items.filter(i=>normalize(i.text).includes(q));
+  renderBankList(items);
+}
+function filterBankStatus(status){
+  document.querySelectorAll('.pill-row .pill').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+  window._bankFilter = status;
+  filterBank();
+}
+function updateBankStatus(idx,status){savedIdeas[idx].status=status;saveBank();filterBank();}
+function removeBankItem(idx){savedIdeas.splice(idx,1);saveBank();renderBank(document.getElementById('main'));}
+
+// ---- SUBIR IDEIAS ----
+function renderUpload(el){
+  el.innerHTML = `
+    <div class="header"><h1>📤 Subir Ideias</h1><p>Adicione suas proprias ideias ou roteiros prontos.</p></div>
+    <div class="upload-tabs">
+      <button class="upload-tab active" onclick="showUploadTab('idea')">💡 Subir Ideia</button>
+      <button class="upload-tab" onclick="showUploadTab('script')">📝 Subir Roteiro Pronto</button>
+    </div>
+    <div id="uploadIdea" class="upload-area card">
+      <h3>Nova Ideia</h3>
+      <textarea id="newIdeaText" placeholder="Descreva sua ideia de video... (ex: Comparacao de precos Walmart vs Target para brasileiros)"></textarea>
+      <div style="margin-top:12px;display:flex;gap:10px">
+        <button class="btn" onclick="submitIdea()">💡 Salvar & Gerar Roteiro</button>
+        <button class="btn btn-ghost" onclick="submitIdeaOnly()">Salvar no Banco</button>
+      </div>
+    </div>
+    <div id="uploadScript" class="upload-area card" style="display:none">
+      <h3>Roteiro Pronto</h3>
+      <textarea id="newScriptTitle" placeholder="Titulo do video" style="min-height:40px;margin-bottom:10px"></textarea>
+      <textarea id="newScriptBody" placeholder="Cole aqui seu roteiro completo..."></textarea>
+      <div style="margin-top:12px"><button class="btn" onclick="submitScript()">📝 Salvar Roteiro</button></div>
+    </div>
+  `;
+}
+function showUploadTab(tab){
+  document.querySelectorAll('.upload-tab').forEach(t=>t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('uploadIdea').style.display = tab==='idea' ? 'block' : 'none';
+  document.getElementById('uploadScript').style.display = tab==='script' ? 'block' : 'none';
+}
+function submitIdea(){
+  const text = document.getElementById('newIdeaText').value.trim();
+  if(!text){alert('Escreva uma ideia!');return;}
+  addToBank(text);
+  openScriptModal(text);
+  document.getElementById('newIdeaText').value = '';
+}
+function submitIdeaOnly(){
+  const text = document.getElementById('newIdeaText').value.trim();
+  if(!text){alert('Escreva uma ideia!');return;}
+  addToBank(text);
+  document.getElementById('newIdeaText').value = '';
+}
+function submitScript(){
+  const title = document.getElementById('newScriptTitle').value.trim();
+  const body = document.getElementById('newScriptBody').value.trim();
+  if(!title){alert('Adicione um titulo!');return;}
+  savedIdeas.push({text:title,status:'pendente',date:new Date().toLocaleDateString('pt-BR'),script:body});
+  saveBank();
+  alert('✅ Roteiro salvo!');
+  document.getElementById('newScriptTitle').value='';
+  document.getElementById('newScriptBody').value='';
+}
+
+// ============ DOWNLOAD SAVED SITE ============
+function downloadSavedSite(){
+  const data = JSON.stringify({ bank: savedIdeas, cal: calendarEvents, apiKey: localStorage.getItem('olai_openai_key') || '' });
+  // Get current HTML
+  let html = document.documentElement.outerHTML;
+  // Replace embedded data
+  const dataTag = '<script type="application/json" id="olai-embedded-data">';
+  const closeTag = '<\/script>';
+  const regex = new RegExp(dataTag + '[\\s\\S]*?' + closeTag.replace(/\//g,'\\/'));
+  const newDataBlock = dataTag + data + '<\/script>';
+  if(html.match(regex)){
+    html = html.replace(regex, newDataBlock);
+  } else {
+    html = html.replace('</body>', newDataBlock + '\n</body>');
+  }
+  html = '<!DOCTYPE html>\n<html lang="pt-BR">\n' + html.replace(/^<html[^>]*>/,'') ;
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'orange-lab-ai.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  // Visual feedback
+  const btn = event.target.closest('button') || event.target;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '✅ Salvo!';
+  btn.style.background = 'var(--green)';
+  btn.style.borderColor = 'var(--green)';
+  setTimeout(()=>{ btn.innerHTML = orig; btn.style.background = ''; btn.style.borderColor = ''; }, 2000);
+}
+
+
+// ============ LOCK SCREEN ============
+const SITE_CODE = '0027';
+let isUnlocked = false;
+
+function lockNext(el, idx){
+  if(el.value.length === 1 && idx < 4){
+    document.getElementById('lk'+(idx+1)).focus();
+  }
+  if(idx === 4) tryUnlock();
+}
+function lockBack(e, prevIdx){
+  if(e.key === 'Backspace' && e.target.value === '' && prevIdx >= 0){
+    document.getElementById('lk'+(prevIdx+1)).focus();
+  }
+}
+function tryUnlock(){
+  const code = document.getElementById('lk1').value +
+               document.getElementById('lk2').value +
+               document.getElementById('lk3').value +
+               document.getElementById('lk4').value;
+  if(code === SITE_CODE){
+    document.getElementById('lockScreen').classList.add('unlocked');
+    isUnlocked = true;
+    sessionStorage.setItem('olai_unlocked','1');
+  } else {
+    document.getElementById('lockError').textContent = 'Codigo incorreto. Tente novamente.';
+    document.getElementById('lk1').value = '';
+    document.getElementById('lk2').value = '';
+    document.getElementById('lk3').value = '';
+    document.getElementById('lk4').value = '';
+    document.getElementById('lk1').focus();
+    document.getElementById('lockScreen').style.animation = 'shake .3s';
+    setTimeout(()=>{ document.getElementById('lockScreen').style.animation = ''; }, 300);
+  }
+}
+// Check if already unlocked in this session
+if(sessionStorage.getItem('olai_unlocked')==='1'){
+  document.getElementById('lockScreen').classList.add('unlocked');
+  isUnlocked = true;
+}
+// Enter key support
+document.addEventListener('keydown', e => {
+  if(!isUnlocked && e.key === 'Enter') tryUnlock();
+});
+
+// ============ SETTINGS ============
+function renderSettings(el){
+  const currentKey = localStorage.getItem('olai_openai_key') || '';
+  const maskedKey = currentKey ? currentKey.slice(0,8) + '...' + currentKey.slice(-4) : '';
+  el.innerHTML = `
+    <div class="header"><h1>⚙️ Configuracoes</h1><p>Configure a IA e personalize seu Orange Lab AI.</p></div>
+
+    <div class="settings-card">
+      <h3>🤖 Integracao com IA (OpenAI)</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Conecte sua API Key da OpenAI para gerar roteiros completos com inteligencia artificial. Os roteiros serao criados automaticamente ao clicar em qualquer ideia.</p>
+      <div class="settings-row">
+        <label>API Key</label>
+        <input type="password" id="settingsApiKey" placeholder="sk-..." value="${currentKey}">
+        <button class="btn btn-sm" onclick="toggleShowKey()">👁️</button>
+      </div>
+      <p class="settings-hint">${currentKey ? '✅ API Key configurada: ' + maskedKey : '⚠️ Nenhuma API Key configurada. Os roteiros nao serao gerados pela IA.'}</p>
+      <p class="settings-hint">Pegue sua chave em: <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--orange)">platform.openai.com/api-keys</a></p>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="btn" onclick="saveApiKey()">💾 Salvar API Key</button>
+        <button class="btn btn-ghost" onclick="testApiKey()">🧪 Testar Conexao</button>
+        ${currentKey ? '<button class="btn btn-ghost" style="color:var(--red)" onclick="removeApiKey()">🗑️ Remover</button>' : ''}
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h3>🔒 Codigo de Acesso</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">O codigo atual para acessar o site e: <strong style="color:var(--orange)">0027</strong></p>
+      <p class="settings-hint">Para alterar o codigo, edite o valor de SITE_CODE no HTML do site.</p>
+    </div>
+
+    <div class="settings-card">
+      <h3>💾 Dados & Persistencia</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Seus dados (Banco de Ideias e Calendario) ficam salvos no navegador. Use o botao "Salvar Site" na barra lateral para baixar uma copia com todos os dados embutidos.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" onclick="downloadSavedSite()">💾 Salvar Site Agora</button>
+        <button class="btn btn-ghost" onclick="clearAllData()">🗑️ Limpar Todos os Dados</button>
+      </div>
+      <p class="settings-hint" style="margin-top:8px">Banco de Ideias: ${savedIdeas.length} ideias | Calendario: ${Object.keys(calendarEvents).length} dias agendados</p>
+    </div>
+
+    <div class="settings-card">
+      <h3>ℹ️ Sobre</h3>
+      <p style="font-size:13px;color:var(--muted);line-height:1.7">
+        <strong style="color:var(--text)">ORANGE LAB AI v4.0</strong><br>
+        Planejador de conteudo inteligente para Instagram e TikTok.<br>
+        Nicho: Orlando / EUA / Viagem para brasileiros.<br>
+        Arquivo unico HTML com IA integrada.
+      </p>
+    </div>
+  `;
+}
+
+function toggleShowKey(){
+  const inp = document.getElementById('settingsApiKey');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function saveApiKey(){
+  const key = document.getElementById('settingsApiKey').value.trim();
+  if(!key){
+    alert('Cole sua API Key primeiro!');
+    return;
+  }
+  if(!key.startsWith('sk-')){
+    alert('A API Key deve comecar com "sk-". Verifique e tente novamente.');
+    return;
+  }
+  localStorage.setItem('olai_openai_key', key);
+  alert('✅ API Key salva com sucesso! Agora clique em qualquer ideia para gerar roteiros com IA.');
+  renderSettings(document.getElementById('main'));
+}
+
+function testApiKey(){
+  const key = document.getElementById('settingsApiKey').value.trim() || localStorage.getItem('olai_openai_key');
+  if(!key){
+    alert('Configure uma API Key primeiro!');
+    return;
+  }
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '⏳ Testando...';
+  btn.disabled = true;
+
+  fetch('https://api.openai.com/v1/models', {
+    headers: { 'Authorization': 'Bearer ' + key }
+  })
+  .then(r => {
+    if(r.ok){
+      btn.textContent = '✅ Conectado!';
+      btn.style.background = 'var(--green)';
+      btn.style.borderColor = 'var(--green)';
+    } else {
+      btn.textContent = '❌ Falhou!';
+      btn.style.background = 'var(--red)';
+      alert('API Key invalida ou sem creditos. Verifique em platform.openai.com');
+    }
+    setTimeout(()=>{ btn.textContent = orig; btn.disabled = false; btn.style.background = ''; btn.style.borderColor = ''; }, 3000);
+  })
+  .catch(()=>{
+    btn.textContent = '❌ Erro de rede';
+    setTimeout(()=>{ btn.textContent = orig; btn.disabled = false; }, 3000);
+  });
+}
+
+function removeApiKey(){
+  if(confirm('Tem certeza? Os roteiros voltarao a ser gerados offline.')){
+    localStorage.removeItem('olai_openai_key');
+    document.getElementById('settingsApiKey').value = '';
+    renderSettings(document.getElementById('main'));
+  }
+}
+
+function clearAllData(){
+  if(confirm('Tem certeza que quer limpar TODOS os dados? (Banco de Ideias e Calendario)')){
+    savedIdeas = [];
+    calendarEvents = {};
+    saveBank();
+    saveCal();
+    alert('✅ Dados limpos!');
+    renderSettings(document.getElementById('main'));
+  }
+}
+
+// ============ INIT ============
+buildNav();
+renderSection();
+</script>
+<script type="application/json" id="olai-embedded-data"></script>
+</body>
+</html>
